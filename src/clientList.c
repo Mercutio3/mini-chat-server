@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "clientList.h"
+#include "../include/clientList.h"
 
 //#define DEBUG
 

@@ -10,8 +10,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/event.h>
-#include "clientList.h"
-#include "commands.h"
+#include "../include/clientList.h"
+#include "../include/commands.h"
 
 #define MAXDATASIZE 200
 

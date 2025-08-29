@@ -14,8 +14,8 @@ kserver.c - Simple echoing server using kqueue.
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/event.h>
-#include "clientList.h"
-#include "commands.h"
+#include "../include/clientList.h"
+#include "../include/commands.h"
 
 #define PORT "5223"
 #define BACKLOG 5
