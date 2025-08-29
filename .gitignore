@@ -1,0 +1,6 @@
+*.o
+kserver
+client
+*~~
+.DS_STORE
+.vscode/
