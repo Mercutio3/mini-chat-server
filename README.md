@@ -1,6 +1,8 @@
 # Mini Chat Server
 
-The server started off as a simple echoing program, with support for multiple concurrent clients only via forking. To better handle more clients and to favor performant scalability, the server was rewritten to utilize the kqueue library.
+A simple but professional multi-client chat server written in C.
+
+The server started off as a simple echoing program, with support for multiple concurrent clients only via forking. To better handle more clients and to favor performant scalability, the server was rewritten to utilize the kqueue library. This unfortunately limits server compatibility to MacOS.
 
 The goal of this project is to demonstrate and put to practice the skills in networking, concurrency, and event-driven programming aquired during my low-level programming courses, as well as the design, DevOps, and production-minded qualities upheld in my software engineering courses.
 
@@ -17,19 +19,20 @@ The goal of this project is to demonstrate and put to practice the skills in net
     - Modular codebase
     - Clean socket + resource management
 
-
 ## Installation Guide
-    # Clone this repository
+
+    1. Clone this repository
         git clone https://github.com/Mercutio3/mini-chat-server.git
     
-    # Open a terminal window in the root directory, or cd to it
+    2. Open a terminal window in the cloned repo's root directory, or cd to it
     
-    # Run "make".
+    3. Run "make".
 
 ## Running
-On a terminal window you wish to use as a server (also on the root directory), run ./kserver. The server takes no arguments, and can only be interacted with to shut down (CTRL + C).
 
-On a terminal window you wish to use as a client (also on the root directory), run ./client [ ip ]. The client takes one argument, the IPv4 address of the server. The program was built using localhost, or 127.0.0.1.
+On a terminal window you wish to use as a server (opened on the cloned repo's root directory), run ./kserver. The server takes no arguments, and can only be interacted with to shut down (CTRL + C).
+
+On a terminal window you wish to use as a client (also opened on the cloned repo's root directory), run ./client [ ip ]. The client takes one argument, the IPv4 address of the server. The program was built using localhost, or 127.0.0.1.
 
 Both server and client currently use the hard-coded port 5223.
 
@@ -49,4 +52,8 @@ Clients can send commands to the server (prefaced by a backslash /) to execute s
 
 ## Testing
 
-All testing-related files can be found in the tests directory.
+All testing-related files can be found in the tests directory. Executables for each are created upon installation.
+
+    ./testClientList runs unit-tests on the frequently-called methods supporting the linked list that keeps track of all connected clients. 
+
+    ./testCommands runs tests on the command-processing methods with both valid and invalid sets of arguments, as well as verifying their results.

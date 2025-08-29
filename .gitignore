@@ -1,6 +1,9 @@
 *.o
 kserver
 client
+testClientList
+testCommands
 *~~
 .DS_STORE
+*.dSYM
 .vscode/

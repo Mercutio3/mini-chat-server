@@ -1,41 +1,60 @@
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include "../include/commands.h"
 #include "../include/clientList.h"
 
+ssize_t mock_send(int sockfd, const void *buf, size_t len, int flags) {
+    printf("MOCKING SEND with fd %d and message: \"%.*s\"\n", sockfd, (int)len, (char *)buf);
+    //Return the length of the buffer for testing purposes
+    return len;
+}
+
 int main(){
-    struct clientnode* head = NULL;
+    struct clientNode* head = NULL;
     head = addClient(head, 1);
-    head = addClient(head, 2);
+    strncpy(head->username, "UserA", sizeof(head->username));
     
     //Test help command
     processHelpCmd(1);
 
-    //Test list command
-    processListCmd(1, head, 64); //With few clients
-    for(int i = 2; i <= 10; i++){
-        head = addClient(head, i);
-    }
-    processListCmd(1, head, 64); //With many clients
-    for(int i = 2; i <= 10; i++){
-        head = deleteClient(head, i);
-    }
+    //Test list command with one client
+    processListCmd(1, head, 64);
 
-    //Test name command
-    processNameCmd(1, head, "UserA", 64);
-    processNameCmd(2, head, "UserB", 64);
-    processNameCmd(1, head, "UserB", 64); //Taken name
-    processNameCmd(1, head, "", 64); //Empty name
-    processNameCmd(1, head, "User A", 64); //Name with space
-    processNameCmd(1, head, "Insanely long username that exceeds the default maximum length allowed by the server", 64);
+    head = addClient(head, 2);
+    strncpy(head->next->username, "UserB", sizeof(head->next->username));
 
-    //Test msg command
-    processMsgCmd(1, head, "/msg UserB testing private msg", 64); //Valid
-    processMsgCmd(1, head, "/msg UserB ", 64); //Empty message
-    processMsgCmd(1, head, "/msg UserC testing private msg", 64); //Nonexistent username
-    processMsgCmd(1, head, "/msg", 64); //No arguments
+    //Test list command with more than one client
+    processListCmd(1, head, 64);
+
+    //Test valid name command
+    processNameCmd(1, head, "NewUserA", 64);
+    assert(strcmp(head->username, "NewUserA") == 0);
+
+    //Test invalid name commands
+    processNameCmd(1, head, "UserB", 64); //Taken
+    processNameCmd(1, head, "", 64); //Invalid
+    processNameCmd(1, head, "New UserA", 64); //Has space
+    processNameCmd(1, head, "An extremely and unreasonably long username that will exceed the server default of sixty four character", 64);
+    assert(strcmp(head->username, "NewUserA") == 0); //None of the invalids resulted in a change
+
+    //Test message command
+    char validMsg[] = "/msg UserB Private message test!";
+    processMsgCmd(1, head, validMsg, 64);
+
+    char selfMsg[] = "/msg NewUserA Private message test!";
+    processMsgCmd(1, head, selfMsg, 64);
+
+    char userNotFound[] = "/msg UserC Private message test!";
+    processMsgCmd(1, head, userNotFound, 64);
+
+    char noArguments[] = "/msg";
+    processMsgCmd(1, head, noArguments, 64);
+
+    char emptyMsg[] = "/msg UserB";
+    processMsgCmd(1, head, emptyMsg, 64);
 
     //Cleanup
     head = deleteClient(head, 1);

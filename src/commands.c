@@ -13,6 +13,12 @@
 #include "../include/clientList.h"
 #include "../include/commands.h"
 
+#ifdef MOCK_SEND
+#warning "Using mock_send for testing"
+ssize_t mock_send(int sockfd, const void *buf, size_t len, int flags);
+#define send mock_send
+#endif
+
 #define MAXDATASIZE 200
 
 //#define DEBUG
