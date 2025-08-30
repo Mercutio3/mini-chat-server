@@ -1,0 +1,26 @@
+name: C Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          brew install clang-format
+      - name: Build
+        run: |
+          make clean
+          make
+      - name: Run tests
+        run: |
+          make test
+      - name: Check formatting
+        run: |
+          clang-format --dry-run --Werror src/*.c include/*.h

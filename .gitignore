@@ -1,9 +1,16 @@
+# Build artifacts
 *.o
+src/*.o
 kserver
 client
 testClientList
 testCommands
-*~~
-.DS_STORE
+
+# Editor/OS files
 *.dSYM
+.DS_Store
+*.swp
+*.swo
+*~
 .vscode/
+.idea/
