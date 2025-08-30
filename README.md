@@ -52,8 +52,22 @@ Clients can send commands to the server (prefaced by a backslash /) to execute s
 
 ## Testing
 
-All testing-related files can be found in the tests directory. Executables for each are created upon installation.
+All testing-related files can be found in the tests directory. Executables for each are created upon installation, which you can run individually:
 
     ./testClientList runs unit-tests on the frequently-called methods supporting the linked list that keeps track of all connected clients. 
 
     ./testCommands runs tests on the command-processing methods with both valid and invalid sets of arguments, as well as verifying their results.
+
+Alternatively, run "make test" to build and run tests. The call will fail if any test fails.
+
+## Debugging
+
+You can enable debug logging to print additional output at all times. Simply change line 2 of the Makefile from:
+
+    CFLAGS = -Wall -Wextra -g
+
+to
+
+    CFLAGS = -Wall -Wextra -g -DDEBUG
+
+and run "make clean && make" to re-compile everything

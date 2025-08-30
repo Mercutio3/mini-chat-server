@@ -12,6 +12,7 @@
 #include <sys/event.h>
 #include "../include/clientList.h"
 #include "../include/commands.h"
+#include "../include/log.h"
 
 #ifdef MOCK_SEND
 #warning "Using mock_send for testing"
@@ -84,7 +85,7 @@ void processNameCmd(int client_fd, struct clientNode* head, const char* newName,
                 current = current->next;
             }
             const char nameChangedMsg[] = "Username changed successfully.";
-            printf("Client with fd %d changed their name to %s\n", client_fd, newName);
+            LOG_INFO("Client with fd %d changed their name to %s.", client_fd, newName);
             if(send(client_fd, nameChangedMsg, strlen(nameChangedMsg), 0) == -1){
                 perror("send error");
             }
@@ -97,19 +98,15 @@ void processMsgCmd(int client_fd, struct clientNode* head, char* message, int ma
     char *cmd = strtok(message, " \n");
     char *target = strtok(NULL, " \n");
     char *privMsg = strtok(NULL, "\n");
-    #ifdef DEBUG
-        printf("Target: %s\n", target);
-        printf("Message: %s\n", privMsg);
-    #endif
+    LOG_DEBUG("Target: %s", target);
+    LOG_DEBUG("Message: %s", privMsg);
     if(target == NULL || privMsg == NULL){
         const char invalidFormat[] = "Invalid format. Use /msg <username> <message>";
         if(send(client_fd, invalidFormat, strlen(invalidFormat), 0) == -1){
             perror("send error");
         }
     } else {
-        #ifdef DEBUG
-            printf("Private message formatted well. Proceeding with search\n");
-        #endif
+        LOG_DEBUG("Private message formatted well. Proceeding with search.");
         struct clientNode* current = head;
 
         //Look for specified username
@@ -123,8 +120,9 @@ void processMsgCmd(int client_fd, struct clientNode* head, char* message, int ma
             }
             current = current->next;
         }
+        char* senderName = getUserNameFromFD(head, client_fd);
         if(targetFound == 0){
-            printf("target not found\n");
+            LOG_INFO("%s tried to send a private message to non-existent user %s.", senderName, target);
             //If not found
             const char userNotFound[] = "Username not found.";
             if(send(client_fd, userNotFound, strlen(userNotFound), 0) == -1){
@@ -132,13 +130,12 @@ void processMsgCmd(int client_fd, struct clientNode* head, char* message, int ma
             }
         } else {
             //If found, send message;
-            char* senderName = getUserNameFromFD(head, client_fd);
             char fullMsg[MAXDATASIZE + maxLength + 12]; //Extra space for formatting
             snprintf(fullMsg, sizeof(fullMsg), "Private message from %s: %s", senderName, privMsg);
             if(send(target_fd, fullMsg, strlen(fullMsg), 0) == -1){
                 perror("send error");
             }
-            printf("%s sent a private message to %s.\n", senderName, target);
+            LOG_INFO("%s sent a private message to %s.", senderName, target);
         }
     }
 }

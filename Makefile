@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g
+CFLAGS = -Wall -Wextra -g -DDEBUG
 
 SERVER_OBJS = src/kserver.o src/clientList.o src/commands.o
 SERVER_TARGET = kserver
@@ -31,6 +31,10 @@ $(TEST_COMMANDS): $(TEST_COMMANDS_SRC)
 
 src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
+test: $(TEST_CLIENTLIST) $(TEST_COMMANDS)
+	./$(TEST_CLIENTLIST)
+	./$(TEST_COMMANDS)
 
 clean:
 	rm -f *.o src/*.o $(SERVER_TARGET) $(CLIENT_TARGET) $(TEST_CLIENTLIST) $(TEST_COMMANDS)

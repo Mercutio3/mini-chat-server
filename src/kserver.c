@@ -16,13 +16,13 @@ kserver.c - Simple echoing server using kqueue.
 #include <sys/event.h>
 #include "../include/clientList.h"
 #include "../include/commands.h"
+#include "../include/log.h"
 
 #define PORT "5223"
 #define BACKLOG 5
 #define MAXDATASIZE 200
 #define USERNAME_MAX_LENGTH 64
 
-//#define DEBUG
 //#define RECEIVE_OWN_MESSAGE //Server sends message back to sender as well
 
 volatile sig_atomic_t run = 1;
@@ -42,9 +42,7 @@ void shutdownServer(struct clientNode* current){
         if(close(sock_fd) == -1){
             perror("Error closing.");
         } else {
-            #ifdef DEBUG
-                printf("Server socket closed successfully.\n");
-            #endif
+            LOG_DEBUG("Server socket closed successfully.");
         }
         sock_fd = -1;
     }
@@ -53,7 +51,7 @@ void shutdownServer(struct clientNode* current){
 int main(){
     //sock_fd is the listening socket; client_fd is the client socket
     
-    struct addrinfo hints, *servinfo, *p;
+    struct addrinfo hints, *servInfo, *p;
     socklen_t sin_size;
     int yes = 1;
     char s[INET6_ADDRSTRLEN];
@@ -69,13 +67,13 @@ int main(){
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; //Use local IP
 
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0){
-        fprintf(stderr, "Getaddrinfo: %s\n", gai_strerror(rv));
+    if ((rv = getaddrinfo(NULL, PORT, &hints, &servInfo)) != 0){
+        LOG_ERROR("Getaddrinfo: %s", gai_strerror(rv));
         return EXIT_FAILURE;
     }
 
     //Loop thorugh results and bind to first available address
-    for(p = servinfo; p != NULL; p = p->ai_next){
+    for(p = servInfo; p != NULL; p = p->ai_next){
         if((sock_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1){
             perror("Server socket error");
             continue;
@@ -94,10 +92,10 @@ int main(){
 
         break;
     }
-    freeaddrinfo(servinfo); //Servinfo not used after here
+    freeaddrinfo(servInfo); //Not used after here
 
     if(p == NULL){
-        fprintf(stderr, "Failed to bind.");
+        LOG_ERROR("Failed to bind.");
         return EXIT_FAILURE;
     }
 
@@ -105,9 +103,7 @@ int main(){
         perror("Server listening error");
     }
 
-    #ifdef DEBUG
-        printf("Server socket creation and listening successful.\n");
-    #endif
+    LOG_DEBUG("Server socket creation and listening successful.");
 
     //Set up kqueue instance
     int kq = kqueue();
@@ -155,8 +151,8 @@ int main(){
     //Inialize linked list of clients
     struct clientNode* connectedClients = NULL;
 
-    printf("Server started and listening on port %s.\n", PORT);
-    printf("Press Ctrl+C to shut down server.\n");
+    LOG_INFO("Server started and listening on port %s.", PORT);
+    LOG_INFO("Press Ctrl+C to shut down server.");
 
     //Main kevent loop
     while(run){
@@ -178,23 +174,17 @@ int main(){
 
             //Handle signals
             if(events[i].filter == EVFILT_SIGNAL){
-                #ifdef DEBUG
-                    printf("Signal received!\n");
-                #endif
+                LOG_DEBUG("Signal received!");
 
                 if(events[i].ident == SIGINT || events[i].ident == SIGTERM){
-                    #ifdef DEBUG
-                        printf("Termination signal received. Shutting down...\n");
-                    #endif
+                    LOG_DEBUG("Termination signal received. Shutting down...");
                     //Traverse client socket linked list, closing all sockets
                     struct clientNode* current = connectedClients;
                     while (current != NULL) {
                         int fd = current->fd;
                         struct clientNode* next = current->next;
-                        
-                        #ifdef DEBUG
-                            printf("Closing client with fd %d.\n", fd);
-                        #endif
+
+                        LOG_DEBUG("Closing client with fd %d.", fd);
                         //Send a shutdown message to client
                         if(send(fd, shutdownMsg, strlen(shutdownMsg), 0) == -1){
                             perror("send error");
@@ -223,9 +213,7 @@ int main(){
 
             if(event_fd == sock_fd){
                 //Event is listening socket; accept new connection
-                #ifdef DEBUG
-                    printf("Accepting connection.\n");
-                #endif
+                LOG_DEBUG("Accepting connection.");
                 struct sockaddr_storage client_addr;
 
                 sin_size = sizeof client_addr;
@@ -235,7 +223,7 @@ int main(){
                 if(client_fd == -1){
                     if(errno == EMFILE || errno == ENFILE){
                         //Accept failed due to file descriptor exhaustion
-                        fprintf(stderr, "Max file descirptors reached. Server will continue but won't accept new connections.\n");
+                        LOG_ERROR("Max file descriptors reached. Server will continue but won't accept new connections.");
                     } else {
                         //Other error
                         perror("Error accepting");
@@ -256,7 +244,7 @@ int main(){
                 #ifdef DEBUG
                     printList(connectedClients);
                 #endif
-                printf("Client %d connected.\n", client_fd);
+                LOG_INFO("Client %d connected.", client_fd);
             } else {
                 //Event is client socket; receive data
                 if((numBytes = recv(event_fd, message, MAXDATASIZE-1, 0)) == -1){
@@ -268,9 +256,7 @@ int main(){
                 if(numBytes <= 0){
                     if(numBytes == 0){
                         //Disconnected
-                        #ifdef DEBUG
-                            printf("Client %d disconnecting...\n", event_fd);
-                        #endif
+                        LOG_DEBUG("Client %d disconnecting...", event_fd);
                     } else {
                         //Error
                         perror("recv error");
@@ -288,12 +274,13 @@ int main(){
                     #ifdef DEBUG
                         printList(connectedClients);
                     #endif
-                    printf("Client %d disconnected.\n", event_fd);
+                    LOG_INFO("Client %d disconnected.", event_fd);
                     close(event_fd);
                 } else {
                     //Print message received
                     message[numBytes] = '\0';
-                    printf("Client %d: %s\n", event_fd, message);
+                    char* senderName = getUserNameFromFD(connectedClients, event_fd);
+                    printf("%s: %s\n", senderName, message);
 
                     //Check if user entered '/' for commands
                     if(message[0] == '/'){
@@ -315,14 +302,14 @@ int main(){
                             #ifdef DEBUG
                                 printList(connectedClients);
                             #endif
-                            printf("Client %d disconnected.\n", event_fd);
+                            LOG_INFO("Client %d disconnected.", event_fd);
                             close(event_fd);
                         } else if(strcmp(message, "/help") == 0){
                             processHelpCmd(event_fd);
-                            printf("Sent list of commands to Client %d.\n", event_fd);
+                            LOG_INFO("Sent list of commands to Client %d.", event_fd);
                         } else if(strcmp(message, "/list") == 0){
                             processListCmd(event_fd, connectedClients, USERNAME_MAX_LENGTH);
-                            printf("Sent list of connected users to Client %d.\n", event_fd);
+                            LOG_INFO("Sent list of connected users to Client %d.", event_fd);
                         } else if(strncmp(message, "/name ", 6) == 0){
                             processNameCmd(event_fd, connectedClients, message + 6, USERNAME_MAX_LENGTH);
                         } else if(strncmp(message, "/msg", 4)== 0){
@@ -344,8 +331,7 @@ int main(){
                         #endif
 
                         struct clientNode* current = connectedClients;
-                        char* senderName = getUserNameFromFD(connectedClients, event_fd);
-                        printf("Broadcasting message from %s to other clients....\n", senderName);
+                        LOG_INFO("Broadcasting message from %s to other clients...", senderName);
                         char fullMessage[MAXDATASIZE + USERNAME_MAX_LENGTH + 4]; //Extra
                         snprintf(fullMessage, sizeof(fullMessage), "%s: %s", senderName, message);
 
@@ -355,9 +341,7 @@ int main(){
                                     perror("send error");
                                     if(errno == EPIPE || errno == ECONNRESET){
                                         //Client disconnected, remove from list
-                                        #ifdef DEBUG
-                                            printf("Client %d returned EPIPE or ECONNRESET. Removing...\n", current->fd);
-                                        #endif
+                                        LOG_DEBUG("Client %d returned EPIPE or ECONNRESET. Removing...", current->fd);
                                         EV_SET(&change, current->fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
                                         if(kevent(kq, &change, 1, NULL, 0, NULL) == -1){
                                             if(errno == EINTR){
@@ -373,9 +357,7 @@ int main(){
                                         close(current->fd);
                                     }
                                 }
-                                #ifdef DEBUG
-                                    printf("Sent message %s to Client %d.\n", message, current->fd);
-                                #endif
+                                LOG_DEBUG("Sent message '%s' to Client %d.", message, current->fd);
                             }
                             current = current->next;
                         }
@@ -385,6 +367,6 @@ int main(){
         }
     }
     shutdownServer(connectedClients);
-    printf("Server shut down.\n");
+    LOG_INFO("Server shut down.");
     return EXIT_SUCCESS;
 }

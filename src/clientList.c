@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../include/clientList.h"
+#include "../include/log.h"
 
 //#define DEBUG
 
@@ -13,22 +14,18 @@ struct clientNode* createClientNode(int fd){
     }
     newClient->fd = fd;
     snprintf(newClient->username, sizeof(newClient->username), "Client%d", fd);
-    printf("Client with username %s created.\n", newClient->username);
+    LOG_INFO("Client with username %s created.", newClient->username);
     newClient->next = NULL;
     return newClient;
 }
 
 struct clientNode* addClient(struct clientNode* head, int fd){
-    #ifdef DEBUG
-        printf("Adding client with fd %d to linked list...\n", fd);
-    #endif
+    LOG_DEBUG("Adding client with fd %d to linked list...", fd);
     struct clientNode* newClient = createClientNode(fd);
     
     //Adding first element
     if(head == NULL){
-        #ifdef DEBUG
-            printf("Head is NULL, returning new client as head.\n");
-        #endif
+        LOG_DEBUG("Head is NULL, returning new client as head.");
         return newClient;
     }
     //Adding subsequent elements
@@ -37,16 +34,12 @@ struct clientNode* addClient(struct clientNode* head, int fd){
         current = current->next;
     }
     current->next = newClient;
-    #ifdef DEBUG
-        printf("Added client with fd %d to linked list.\n", fd);
-    #endif
+    LOG_DEBUG("Added client with fd %d to linked list.", fd);
     return head;
 }
 
 struct clientNode* deleteClient(struct clientNode* head, int fd){
-    #ifdef DEBUG
-        printf("Deleting client with fd %d from linked list...\n", fd);
-    #endif
+    LOG_DEBUG("Deleting client with fd %d from linked list...", fd);
     if(head == NULL){
         return head;
     }
@@ -56,9 +49,7 @@ struct clientNode* deleteClient(struct clientNode* head, int fd){
         struct clientNode* temp = head;
         head = head->next;
         free(temp);
-        #ifdef DEBUG
-            printf("Deleted client with fd %d from linked list.\n", fd);
-        #endif
+        LOG_DEBUG("Deleted client with fd %d from linked list.", fd);
         return head;
     }
     
@@ -72,15 +63,13 @@ struct clientNode* deleteClient(struct clientNode* head, int fd){
         current->next = current->next->next;
         free(temp);
     }
-    #ifdef DEBUG
-        printf("Deleted client with fd %d from linked list.\n", fd);
-    #endif
+    LOG_DEBUG("Deleted client with fd %d from linked list.", fd);
     return head;
 };
 
 //Traverse linked list and print all file descriptors
 void printList(struct clientNode* linked_list){
-    printf("Printing list of clients...\n");
+    LOG_INFO("Printing list of clients...");
     while(linked_list != NULL){
         printf("%d ", linked_list->fd);
         linked_list = linked_list->next;
