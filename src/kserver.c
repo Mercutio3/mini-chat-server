@@ -18,7 +18,6 @@ kserver.c - Simple echoing server using kqueue.
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define PORT "5223"
 #define BACKLOG 5
 #define MAXDATASIZE 200
 #define USERNAME_MAX_LENGTH 64
@@ -48,7 +47,7 @@ void shutdownServer(struct clientNode *current) {
   }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
   struct addrinfo hints, *servInfo, *p;
   socklen_t sin_size;
   int yes = 1;
@@ -57,15 +56,26 @@ int main() {
 
   char message[MAXDATASIZE];
   int numBytes;
-
   const char shutdownMsg[] = "SERVER_SHUTDOWN";
+  char port[6] = "5223"; //Default port
+
+  // Print usage if no port is provided
+  if (argc > 2) {
+    fprintf(stderr, "Usage: ./kserver [port]\n");
+    return EXIT_FAILURE;
+  }
+
+  if (argc == 2) {
+    strncpy(port, argv[1], sizeof(port) - 1);
+    port[sizeof(port) - 1] = '\0';
+  }
 
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE; // Use local IP
 
-  if ((rv = getaddrinfo(NULL, PORT, &hints, &servInfo)) != 0) {
+  if ((rv = getaddrinfo(NULL, port, &hints, &servInfo)) != 0) {
     LOG_ERROR("Getaddrinfo: %s", gai_strerror(rv));
     return EXIT_FAILURE;
   }
@@ -151,7 +161,7 @@ int main() {
   // Inialize linked list of clients
   struct clientNode *connectedClients = NULL;
 
-  LOG_INFO("Server started and listening on port %s.", PORT);
+  LOG_INFO("Server started and listening on port %s.", port);
   LOG_INFO("Press Ctrl+C to shut down server.");
 
   // Main kevent loop

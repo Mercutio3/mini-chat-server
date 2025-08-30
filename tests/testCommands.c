@@ -16,6 +16,7 @@ int main(){
     struct clientNode* head = NULL;
     head = addClient(head, 1);
     strncpy(head->username, "UserA", sizeof(head->username));
+    head->username[sizeof(head->username) -1] = '\0';
     
     //Test help command
     processHelpCmd(1);
@@ -25,6 +26,7 @@ int main(){
 
     head = addClient(head, 2);
     strncpy(head->next->username, "UserB", sizeof(head->next->username));
+    head->next->username[sizeof(head->next->username) -1] = '\0';
 
     //Test list command with more than one client
     processListCmd(1, head, 64);

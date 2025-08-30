@@ -35,8 +35,10 @@ int main(void){
     assert(head != NULL && head->fd == 10 && head->next != NULL && head->next->fd == 20 && head->next->next == NULL);
 
     //Test getUserNameFromFD (necessary for some server functionality)
-    strcpy(head->username, "User1");
-    strcpy(head->next->username, "User2");
+    strncpy(head->username, "User1", sizeof(head->username));
+    head->username[sizeof(head->username) -1] = '\0';
+    strncpy(head->next->username, "User2", sizeof(head->next->username));
+    head->next->username[sizeof(head->next->username) -1] = '\0';
     char* name = getUserNameFromFD(head, 10);
     assert(name != NULL && strcmp(name, "User1") == 0);
     name = getUserNameFromFD(head, 20);

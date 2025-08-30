@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -g
+CFLAGS = -Wall -Wextra -Werror -g -Iinclude 
 
 SERVER_OBJS = src/kserver.o src/clientList.o src/commands.o
 SERVER_TARGET = kserver
@@ -12,8 +12,6 @@ TEST_COMMANDS_SRC = tests/testCommands.c src/commands.c src/clientList.c
 
 TEST_CLIENTLIST = testClientList
 TEST_COMMANDS = testCommands
-
-CFLAGS += -Iinclude -fsanitize=address
 
 all: $(SERVER_TARGET) $(CLIENT_TARGET) $(TEST_CLIENTLIST) $(TEST_COMMANDS)
 

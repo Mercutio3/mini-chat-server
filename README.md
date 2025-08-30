@@ -19,6 +19,21 @@ The goal of this project is to demonstrate and put to practice the skills in net
     - Modular codebase
     - Clean socket + resource management
 
+## Dependencies
+
+To run this you will need:
+
+    - A C compiler like gcc or clang
+    - make
+    - kqueue
+    - AddressSanitizer (optional, for memory testing)
+
+On macOS, Xcode Command Line Tools include gcc, clang, make, and kqueue. So if you don't have it already, simply run:
+
+    xcode-select --install
+
+on a terminal window.
+
 ## Installation Guide
 
     1. Clone this repository
@@ -60,14 +75,37 @@ All testing-related files can be found in the tests directory. Executables for e
 
 Alternatively, run "make test" to build and run tests. The call will fail if any test fails.
 
+Due to Valgrind not being available on macOS, ASan and LSan are used to detect memory leaks and buffer overflows. To enable them, simply change line 2 of the Makefile from:
+
+    CFLAGS = -Wall -Wextra -Werror -g -Iinclude 
+
+to
+
+    CFLAGS = -Wall -Wextra -Werror -g -Iinclude -fsanitize=address
+
+then run "make clean && make" to recompile everything.
+
+## Limitations
+
+    - As mentioned above, due to the kqueue interface being a macOS implementation of Linux's epoll, the server only runs on macOS.
+    - Only plain text messages supported
+    - Unencrypted communication
+    - Messages do not persist after server shutdown
+    - No spam protection
+    - No user registration/passwords
+    - No GUI client
+    - May not scale to hundreds/thousands of clients
+    - Assumption of UTF-8 or ASCII
+    - No IPv6 support
+
 ## Debugging
 
 You can enable debug logging to print additional output at all times. Simply change line 2 of the Makefile from:
 
-    CFLAGS = -Wall -Wextra -g
+    CFLAGS = -Wall -Wextra -Werror -g -Iinclude
 
 to
 
-    CFLAGS = -Wall -Wextra -g -DDEBUG
+    CFLAGS = -Wall -Wextra -Werror -g -Iinclude -DDEBUG
 
-and run "make clean && make" to re-compile everything
+and run "make clean && make" to re-compile everything.

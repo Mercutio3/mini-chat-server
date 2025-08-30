@@ -9,7 +9,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PORT "5223"     // User-defined port
 #define MAXDATASIZE 200 // Max bytes that can be received at once
 
 // #define DEBUG
@@ -34,8 +33,8 @@ int main(int argc, char *argv[]) {
   char msg[MAXDATASIZE];
 
   // Print usage if no IP is provided
-  if (argc != 2) {
-    fprintf(stderr, "Usage: ./client [client hostname]\n");
+  if (argc != 3) {
+    fprintf(stderr, "Usage: ./client <server ip/hostname> <port>\n");
     return EXIT_FAILURE;
   }
 
@@ -43,7 +42,7 @@ int main(int argc, char *argv[]) {
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
 
-  if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+  if ((rv = getaddrinfo(argv[1], argv[2], &hints, &servinfo)) != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
     return 1;
   }
@@ -77,7 +76,7 @@ int main(int argc, char *argv[]) {
 
   inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s,
             sizeof(s));
-  printf("Connected to: %s:%s\n", s, PORT);
+  printf("Connected to: %s:%s\n", s, argv[2]);
 
   freeaddrinfo(servinfo); // Servinfo not used after here
 
