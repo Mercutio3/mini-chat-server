@@ -9,7 +9,7 @@
 #ifdef DEBUG
 #define LOG_DEBUG(fmt, ...) fprintf(stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
 #else
-#define LOG_DEBUG(fmt, ...) //Does nothing if DEBUG isn't set
+#define LOG_DEBUG(fmt, ...) // Does nothing if DEBUG isn't set
 #endif
 
 #endif

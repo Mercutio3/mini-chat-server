@@ -7,9 +7,9 @@
 #include "../include/clientList.h"
 
 ssize_t mock_send(int sockfd, const void *buf, size_t len, int flags) {
+    (void)flags;
     printf("MOCKING SEND with fd %d and message: \"%.*s\"\n", sockfd, (int)len, (char *)buf);
-    //Return the length of the buffer for testing purposes
-    return len;
+    return len; //Return the length of the buffer for testing purposes
 }
 
 int main(){
