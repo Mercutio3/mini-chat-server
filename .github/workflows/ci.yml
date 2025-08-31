@@ -23,4 +23,4 @@ jobs:
           make test
       - name: Check formatting
         run: |
-          clang-format --dry-run --Werror src/*.c include/*.h
+          clang-format --dry-run --Werror src/*.c include/*.h tests/*.c

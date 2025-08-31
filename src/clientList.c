@@ -1,10 +1,12 @@
+/*
+clientList.c - Client linked list management functions
+*/
+
 #include "../include/clientList.h"
 #include "../include/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// #define DEBUG
 
 struct clientNode *createClientNode(int fd) {
     struct clientNode *newClient = (struct clientNode *)malloc(sizeof(struct clientNode));
@@ -75,15 +77,4 @@ void printList(struct clientNode *linked_list) {
         linked_list = linked_list->next;
     }
     printf("\n");
-}
-
-char *getUserNameFromFD(struct clientNode *head, int fd) {
-    struct clientNode *current = head;
-    while (current != NULL) {
-        if (current->fd == fd) {
-            return current->username;
-        }
-        current = current->next;
-    }
-    return NULL; // Not found
 }

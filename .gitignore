@@ -5,6 +5,7 @@ kserver
 client
 testClientList
 testCommands
+testUtils
 
 # Log files
 *.log

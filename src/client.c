@@ -1,3 +1,7 @@
+/*
+client.c - Client program and its client-side operations
+*/
+
 #include "../include/log.h"
 #include <arpa/inet.h>
 #include <errno.h>
@@ -11,11 +15,6 @@
 #include <unistd.h>
 
 #define MAXDATASIZE 200 // Max bytes that can be received at once
-
-// #define DEBUG
-// #define INSTRUCTIONS //Print instructions every time a message is
-// sent/received #define LOCAL_EXIT //Client exits immediately when using /exit
-// instead of waiting for server to close connection
 
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_UNSPEC) {

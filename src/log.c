@@ -1,3 +1,7 @@
+/*
+log.c - Chat logging function and file management
+*/
+
 #include "../include/log.h"
 #include <stdarg.h>
 #include <time.h>

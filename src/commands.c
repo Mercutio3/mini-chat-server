@@ -1,6 +1,11 @@
+/*
+commands.c - Command processing functions
+*/
+
 #include "../include/commands.h"
 #include "../include/clientList.h"
 #include "../include/log.h"
+#include "../include/utils.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
@@ -20,8 +25,6 @@ ssize_t mock_send(int sockfd, const void *buf, size_t len, int flags);
 #endif
 
 #define MAXDATASIZE 200
-
-// #define DEBUG
 
 void processHelpCmd(int client_fd) {
     // Send list of commands to client

@@ -79,6 +79,21 @@ A log file "chatLog.log" will be created in the root directory. The following th
 
 These logs include a timestamp in UTC. If the log file already exists, the server will append instead of overwriting.
 
+### Optional Features
+
+These can be enabled by adding a flag to line 2 of the Makefile:
+
+    CFLAGS = -Wall -Wextra -Werror -g -Iinclude
+
+The following flags are available:
+
+    -DDEBUG: enables debug output, more on that in its respective section
+    -DRECEIVE_OWN_MESSAGE: Server sends broadcast message back to sender as well
+    -DINSTRUCTIONS: Print usage instructions for client every time a message is sent/received
+    -DLOCAL_EXIT: Client terminates immediately when using /exit instead of waiting for server to close connection
+
+Make sure to run "make clean && make" to re-compile everything.
+
 ## Testing
 
 All testing-related files can be found in the tests directory. Executables for each are created upon installation, which you can run individually:
@@ -86,6 +101,8 @@ All testing-related files can be found in the tests directory. Executables for e
     ./testClientList runs unit-tests on the frequently-called methods supporting the linked list that keeps track of all connected clients. 
 
     ./testCommands runs tests on the command-processing methods with both valid and invalid sets of arguments, as well as verifying their results.
+
+    ./testUtils runs tests on helper functions used by other files.
 
 Alternatively, run "make test" to build and run tests. The call will fail if any test fails.
 
