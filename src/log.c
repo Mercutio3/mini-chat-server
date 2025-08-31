@@ -17,7 +17,7 @@ void closeChatLog() {
 }
 
 void logChatMessage(const char *fmt, ...) {
-    if (!chatLogFile){
+    if (!chatLogFile) {
         return;
     }
     time_t now = time(NULL);

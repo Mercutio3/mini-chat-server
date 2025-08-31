@@ -1,3 +1,4 @@
+#include "../include/log.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
@@ -8,7 +9,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "../include/log.h"
 
 #define MAXDATASIZE 200 // Max bytes that can be received at once
 
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
     }
 
     int intPort = atoi(argv[2]);
-    if(intPort < 1024 || intPort > 65535){
+    if (intPort < 1024 || intPort > 65535) {
         LOG_ERROR("Invalid port. Port must be between 1024 and 65535.");
         return EXIT_FAILURE;
     }
