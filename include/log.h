@@ -12,4 +12,8 @@
 #define LOG_DEBUG(fmt, ...) // Does nothing if DEBUG isn't set
 #endif
 
+void openChatLog(const char *filename);
+void closeChatLog();
+void logChatMessage(const char *fmt, ...);
+
 #endif

@@ -1,14 +1,14 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror -g -Iinclude 
 
-SERVER_OBJS = src/kserver.o src/clientList.o src/commands.o
+SERVER_OBJS = src/kserver.o src/clientList.o src/commands.o src/log.o
 SERVER_TARGET = kserver
 
 CLIENT_OBJS = src/client.o
 CLIENT_TARGET = client
 
-TEST_CLIENTLIST_SRC = tests/testClientList.c src/clientList.c
-TEST_COMMANDS_SRC = tests/testCommands.c src/commands.c src/clientList.c
+TEST_CLIENTLIST_SRC = tests/testClientList.c src/clientList.c src/log.c
+TEST_COMMANDS_SRC = tests/testCommands.c src/commands.c src/clientList.c src/log.c
 
 TEST_CLIENTLIST = testClientList
 TEST_COMMANDS = testCommands

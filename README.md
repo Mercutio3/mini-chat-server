@@ -20,6 +20,7 @@ However, this server is NOT secure for production; it is simply a small open-sou
     - Robust handling of errors, disconnects, resource exhaustion, and invalid user input
     - Modular codebase
     - Clean socket + resource management
+    - Chat logging
 
 ## Dependencies
 
@@ -67,6 +68,17 @@ Clients can send commands to the server (prefaced by a backslash /) to execute s
 
     # /msg [target username] [message] - Server will forward a private message to the specfied target client. It will not work if either of the arguments are NULL, or if the target username does not exist. Clients receiving a private message will be notified of who the sender is.
 
+A log file "chatLog.log" will be created in the root directory. The following things will be logged here:
+
+    1. Broadcast chat messages
+    2. Private chat messages (denoted as "sender -> receiver: ")
+    3. Server startup
+    4. Server shutdown
+    5. Clients connecting and disconnecting
+    6. Succesful username changes
+
+These logs include a timestamp in UTC. If the log file already exists, the server will append instead of overwriting.
+
 ## Testing
 
 All testing-related files can be found in the tests directory. Executables for each are created upon installation, which you can run individually:
@@ -92,12 +104,11 @@ then run "make clean && make" to recompile everything.
     - As mentioned above, due to the kqueue interface being a macOS implementation of Linux's epoll, the server only runs on macOS.
     - Only plain text messages supported
     - Unencrypted communication
-    - Messages do not persist after server shutdown
     - No spam protection
     - No user registration/passwords
     - No GUI client
     - May not scale to hundreds/thousands of clients
-    - Assumption of UTF-8 or ASCII
+    - Only supports UTF-8 (input is verified)
 
 ## Debugging
 

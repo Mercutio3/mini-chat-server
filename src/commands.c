@@ -89,6 +89,7 @@ void processNameCmd(int client_fd, struct clientNode *head, const char *newName,
             }
             const char nameChangedMsg[] = "Username changed successfully.";
             LOG_INFO("Client with fd %d changed their name to %s.", client_fd, newName);
+            logChatMessage("Client with fd %d changed their name to %s.", client_fd, newName);
             if (send(client_fd, nameChangedMsg, strlen(nameChangedMsg), 0) == -1) {
                 perror("send error");
             }
@@ -140,6 +141,7 @@ void processMsgCmd(int client_fd, struct clientNode *head, char *message, int ma
                 perror("send error");
             }
             LOG_INFO("%s sent a private message to %s.", senderName, target);
+            logChatMessage("%s -> %s: %s", senderName, target, privMsg);
         }
     }
 }

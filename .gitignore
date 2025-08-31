@@ -6,6 +6,9 @@ client
 testClientList
 testCommands
 
+# Log files
+*.log
+
 # Editor/OS files
 *.dSYM
 .DS_Store
