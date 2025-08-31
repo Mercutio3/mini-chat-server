@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "../include/log.h"
 
 #define MAXDATASIZE 200 // Max bytes that can be received at once
 
@@ -17,7 +18,7 @@
 // instead of waiting for server to close connection
 
 void *get_in_addr(struct sockaddr *sa) {
-    if (sa->sa_family == AF_INET) {
+    if (sa->sa_family == AF_UNSPEC) {
         return &(((struct sockaddr_in *)sa)->sin_addr);
     }
     return &(((struct sockaddr_in6 *)sa)->sin6_addr);
@@ -35,6 +36,12 @@ int main(int argc, char *argv[]) {
     // Print usage if no IP is provided
     if (argc != 3) {
         fprintf(stderr, "Usage: ./client <server ip/hostname> <port>\n");
+        return EXIT_FAILURE;
+    }
+
+    int intPort = atoi(argv[2]);
+    if(intPort < 1024 || intPort > 65535){
+        LOG_ERROR("Invalid port. Port must be between 1024 and 65535.");
         return EXIT_FAILURE;
     }
 
@@ -74,7 +81,7 @@ int main(int argc, char *argv[]) {
     }
 
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof(s));
-    printf("Connected to: %s:%s\n", s, argv[2]);
+    printf("Connected to %s on port %s\n", s, argv[2]);
 
     freeaddrinfo(servinfo); // Servinfo not used after here
 

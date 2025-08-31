@@ -17,6 +17,7 @@ kserver.c - Simple echoing server using kqueue.
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <time.h>
 
 #define BACKLOG 5
 #define MAXDATASIZE 200
@@ -70,8 +71,14 @@ int main(int argc, char *argv[]) {
         port[sizeof(port) - 1] = '\0';
     }
 
+    int intPort = atoi(port);
+    if(intPort < 1024 || intPort > 65535){
+        LOG_ERROR("Invalid port. Port must be between 1024 and 65535.");
+        return EXIT_FAILURE;
+    }
+
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
+    hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; // Use local IP
 
@@ -156,10 +163,22 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, SIG_IGN);
     signal(SIGTERM, SIG_IGN);
 
+    // Open pointer to chat log file
+    FILE *logFile = fopen("chat.log", "w");
+    if (logFile == NULL) {
+        LOG_ERROR("Error opening log file: %s", strerror(errno));
+        return EXIT_FAILURE;
+    }
+
     // Inialize linked list of clients
     struct clientNode *connectedClients = NULL;
 
     LOG_INFO("Server started and listening on port %s.", port);
+    time_t now = time(NULL);
+    struct tm *utc_tm = gmtime(&now);
+    char timebuf[32];
+    strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S UTC", utc_tm);
+    fprintf(logFile, "[%s] Server started and listening on port %s.\n", timebuf, port);
     LOG_INFO("Press Ctrl+C to shut down server.");
 
     // Main kevent loop
@@ -254,6 +273,11 @@ int main(int argc, char *argv[]) {
                 printList(connectedClients);
 #endif
                 LOG_INFO("Client %d connected.", client_fd);
+                time_t now = time(NULL);
+                struct tm *utc_tm = gmtime(&now);
+                char timebuf[32];
+                strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S UTC", utc_tm);
+                fprintf(logFile, "[%s] Client%d connected.\n", timebuf, client_fd);
             } else {
                 // Event is client socket; receive data
                 if ((numBytes = recv(event_fd, message, MAXDATASIZE - 1, 0)) == -1) {
@@ -284,12 +308,23 @@ int main(int argc, char *argv[]) {
                     printList(connectedClients);
 #endif
                     LOG_INFO("Client %d disconnected.", event_fd);
+                    time_t now = time(NULL);
+                    struct tm *utc_tm = gmtime(&now);
+                    char timebuf[32];
+                    strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S UTC", utc_tm);
+                    fprintf(logFile, "[%s] Client%d disconnected.\n", timebuf, event_fd);
                     close(event_fd);
                 } else {
                     // Print message received
                     message[numBytes] = '\0';
                     char *senderName = getUserNameFromFD(connectedClients, event_fd);
                     printf("%s: %s\n", senderName, message);
+                    // Write message on log
+                    time_t now = time(NULL);
+                    struct tm *utc_tm = gmtime(&now);
+                    char timebuf[32];
+                    strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S UTC", utc_tm);
+                    fprintf(logFile, "[%s] %s: %s\n", timebuf, senderName, message);
 
                     // Check if user entered '/' for commands
                     if (message[0] == '/') {
@@ -381,6 +416,9 @@ int main(int argc, char *argv[]) {
         }
     }
     shutdownServer(connectedClients);
+    strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S UTC", utc_tm);
+    fprintf(logFile, "[%s] Server shut down.\n", timebuf);
+    fclose(logFile); // Close log file
     LOG_INFO("Server shut down.");
     return EXIT_SUCCESS;
 }

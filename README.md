@@ -6,6 +6,8 @@ The server started off as a simple echoing program, with support for multiple co
 
 The goal of this project is to demonstrate and put to practice the skills in networking, concurrency, and event-driven programming aquired during my low-level programming courses, as well as the design, DevOps, and production-minded qualities upheld in my software engineering courses.
 
+However, this server is NOT secure for production; it is simply a small open-source demo. Please see Limitations section for more.
+
 ## Features
 
     - Event-driven server
@@ -96,7 +98,6 @@ then run "make clean && make" to recompile everything.
     - No GUI client
     - May not scale to hundreds/thousands of clients
     - Assumption of UTF-8 or ASCII
-    - No IPv6 support
 
 ## Debugging
 
