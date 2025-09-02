@@ -1,10 +1,12 @@
 # Mini Chat Server
 
-A simple but professional multi-client chat server written in C.
+A pair of simple but professional multi-client chat servers written in C and C++.
 
-The server started off as a simple echoing program, with support for multiple concurrent clients only via forking. To better handle more clients and to favor performant scalability, the server was rewritten to utilize the kqueue library. This unfortunately limits server compatibility to MacOS.
+The C server started off as a simple echoing program, with support for multiple concurrent clients only via forking. To better handle more clients and to favor performant scalability, the server was rewritten to utilize the kqueue library. This unfortunately limits server compatibility to MacOS.
 
-The goal of this project is to demonstrate and put to practice the skills in networking, concurrency, and event-driven programming aquired during my low-level programming courses, as well as the design, DevOps, and production-minded qualities upheld in my software engineering courses.
+After the C server reached an acceptable release state, I decided to write a C++ implmentation with the same funcitonality, but using multithreading to handle multiple clients. The C project is contained in main, while the C++ project is in the "cpp-multithreading" branch.
+
+The goal of this project is to demonstrate my understanding of the skills in networking, OOP, multithreading, and event-driven programming aquired during my low-level programming courses, as well as the design, DevOps, and production-minded qualities upheld in my software engineering courses.
 
 However, this server is NOT secure for production; it is simply a small open-source demo. Please see Limitations section for more.
 
@@ -27,6 +29,7 @@ However, this server is NOT secure for production; it is simply a small open-sou
 To run this you will need:
 
     - A C compiler like gcc or clang
+    - A C++ compiler like g++
     - make
     - kqueue
     - AddressSanitizer (optional, for memory testing)
@@ -39,20 +42,27 @@ on a terminal window.
 
 ## Installation Guide
 
-    1. Clone this repository
-        git clone https://github.com/Mercutio3/mini-chat-server.git
+    1. Download the source code from a given release, unzip it.
     
     2. Open a terminal window in the cloned repo's root directory, or cd to it
     
     3. Run "make".
 
-## Running
+## Launching
+
+### C Version
 
 On a terminal window you wish to use as a server (opened on the cloned repo's root directory), run ./kserver. The server takes no arguments, and can only be interacted with to shut down (CTRL + C).
 
-On a terminal window you wish to use as a client (also opened on the cloned repo's root directory), run ./client [ ip ]. The client takes one argument, the IPv4 address of the server. The program was built using localhost, or 127.0.0.1.
+On a terminal window you wish to use as a client (also opened on the cloned repo's root directory), run ./client [ ip ]. The client takes one argument, the IP address of the server. The program was built using localhost, or 127.0.0.1 (::1 in IPv6).
 
-Both server and client currently use the hard-coded port 5223.
+The default port for both the server and the client is 5223.
+
+### C++ Version
+
+Instead of ./kserver, run ./tserver.
+
+## Running
 
 From this point on any non-command message typed and sent in a client will be broadcasted to all other connected clients. A received message will be prefaced with the sending user's username, with the format "[ SENDER USERNAME ]: [ MESSAGE ]".
 
@@ -68,7 +78,7 @@ Clients can send commands to the server (prefaced by a backslash /) to execute s
 
     # /msg [target username] [message] - Server will forward a private message to the specfied target client. It will not work if either of the arguments are NULL, or if the target username does not exist. Clients receiving a private message will be notified of who the sender is.
 
-A log file "chatLog.log" will be created in the root directory. The following things will be logged here:
+A log file "chatLog.log" (or "server.log" for the C++ server) will be created in the root directory. The following things will be logged here:
 
     1. Broadcast chat messages
     2. Private chat messages (denoted as "sender -> receiver: ")

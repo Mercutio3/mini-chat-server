@@ -53,7 +53,7 @@ void processMsgCmd(int clientFd, ThreadClientList &clientList, const string &msg
     string privMsg = msg.substr(firstSpace + 1);
 
     // Make sure message isn't empty
-    if(privMsg.empty()){
+    if (privMsg.empty()) {
         send(clientFd, "Message cannot be empty.", 24, 0);
         return;
     }
