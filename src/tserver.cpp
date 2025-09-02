@@ -17,9 +17,9 @@
 
 using namespace std;
 
-#define BACKLOG 5
-#define MAXDATASIZE 100
-#define USERNAME_MAX_LENGTH 64
+constexpr int BACKLOG = 5;
+constexpr int MAXDATASIZE = 100;
+constexpr int USERNAME_MAX_LENGTH = 64;
 
 atomic<bool> run(true);
 ThreadClientList clientList;
@@ -34,7 +34,12 @@ void handleClient(int clientFd) {
     struct timeval tv;
     tv.tv_sec = 1; // 1 second timeout
     tv.tv_usec = 0;
-    setsockopt(clientFd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
+    if (setsockopt(clientFd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv) == -1) {
+        LOG_ERROR("Error setting socket receive timeout: " + string(strerror(errno)), logger);
+        close(clientFd);
+        clientList.deleteClient(clientFd);
+        return;
+    }
     while (run) {
         vector<char> buffer(MAXDATASIZE);
 
@@ -130,17 +135,17 @@ int main(int argc, char *argv[]) {
     for (p = servInfo; p != nullptr; p = p->ai_next) {
         serverFd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         if (serverFd == -1) {
-            cerr << "Error creating socket" << endl;
+            LOG_ERROR("Error creating socket: " + string(strerror(errno)), logger);
             continue;
         }
         if (setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-            cerr << "Error setting SO_REUSEADDR" << endl;
+            LOG_ERROR("Error setting SO_REUSEADDR: " + string(strerror(errno)), logger);
             close(serverFd);
             continue;
         }
 
         if (::bind(serverFd, p->ai_addr, p->ai_addrlen) == -1) {
-            cerr << "Error binding socket" << endl;
+            LOG_ERROR("Error binding socket: " + string(strerror(errno)), logger);
             close(serverFd);
             continue;
         }
@@ -160,7 +165,16 @@ int main(int argc, char *argv[]) {
     }
 
     int flags = fcntl(serverFd, F_GETFL, 0);
-    fcntl(serverFd, F_SETFL, flags | O_NONBLOCK);
+    if (flags == -1) {
+        LOG_ERROR("Error getting socket flags: " + string(strerror(errno)), logger);
+        close(serverFd);
+        return EXIT_FAILURE;
+    }
+    if (fcntl(serverFd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        LOG_ERROR("Error setting socket to non-blocking: " + string(strerror(errno)), logger);
+        close(serverFd);
+        return EXIT_FAILURE;
+    }
 
     LOG_INFO("Server started and listening on port " + port, logger);
     cout << "Press Ctrl + C to stop the server" << endl;

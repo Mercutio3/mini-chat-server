@@ -12,8 +12,9 @@ using namespace std;
 
 void ChatLogger::open(const string &filename) {
     lock_guard<mutex> lock(mtx);
+    logFile.open(filename, ios::app);
     if (!logFile.is_open()) {
-        logFile.open(filename, ios::app);
+        cerr << "Error opening log file: " << strerror(errno) << endl;
     }
 }
 
@@ -27,6 +28,7 @@ void ChatLogger::close() {
 void ChatLogger::log(const string &msg) {
     lock_guard<mutex> lock(mtx);
     if (!logFile.is_open()) {
+        cerr << "Log file is not open. Cannot log message." << endl;
         return;
     }
     time_t now = time(nullptr);

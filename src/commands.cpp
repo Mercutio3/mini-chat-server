@@ -16,8 +16,6 @@ ssize_t mock_send(int sockfd, const void *buf, size_t len, int flags);
 #define send mock_send
 #endif
 
-#define MAX_DATA_SIZE 200
-
 // Send list of commands to client
 void processHelpCmd(int clientFd) {
     const char *helpMessage = "Available commands:\n"
@@ -48,22 +46,26 @@ void processMsgCmd(int clientFd, ThreadClientList &clientList, const string &msg
     // Parse and verify formatting
     size_t firstSpace = msg.find(' ');
     if (firstSpace == string::npos) {
-        string error = "Usage: /msg <target username> <message>";
-        send(clientFd, error.c_str(), error.length(), 0);
+        send(clientFd, "Usage: /msg <target> <message>", 30, 0);
         return;
     }
     string target = msg.substr(0, firstSpace);
     string privMsg = msg.substr(firstSpace + 1);
 
-    int targetFd = clientList.getFdFromUsername(target);
-    string senderName = clientList.getUsernameFromFd(clientFd);
+    // Make sure message isn't empty
+    if(privMsg.empty()){
+        send(clientFd, "Message cannot be empty.", 24, 0);
+        return;
+    }
 
     // Make sure target exists
+    int targetFd = clientList.getFdFromUsername(target);
     if (targetFd == -1) {
         string error = "Username not found.";
         send(clientFd, error.c_str(), error.length(), 0);
         return;
     }
+    string senderName = clientList.getUsernameFromFd(clientFd);
 
     // If found, send message;
     string fullMsg = "Private message from " + senderName + ": " + privMsg;
