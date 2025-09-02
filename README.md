@@ -1,4 +1,4 @@
-# Mini Chat Server
+# Mini Chat Servers
 
 A pair of simple but professional multi-client chat servers written in C and C++.
 
@@ -12,8 +12,9 @@ However, this server is NOT secure for production; it is simply a small open-sou
 
 ## Features
 
-    - Event-driven server
-    - Portable client
+    - Event-driven C server
+    - Multithreading C++ server
+    - Portable clients
     - Multi-client support
     - Usernames, and the ability to change them
     - Broadcast and private messaging
@@ -28,8 +29,7 @@ However, this server is NOT secure for production; it is simply a small open-sou
 
 To run this you will need:
 
-    - A C compiler like gcc or clang
-    - A C++ compiler like g++
+    - A C compiler like gcc or clang, or a C++ compiler like g++
     - make
     - kqueue
     - AddressSanitizer (optional, for memory testing)
