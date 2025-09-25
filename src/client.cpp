@@ -3,6 +3,7 @@ client.cpp - Client program and its client-side operations
 */
 
 #include "../include/log.hpp"
+#include "../include/socketRAII.hpp"
 #include <arpa/inet.h>
 #include <atomic>
 #include <cstring>
@@ -15,11 +16,18 @@ client.cpp - Client program and its client-side operations
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
+#include <csignal>
 
 using namespace std;
 
+constexpr int MAX_MSG_LENGTH = 512;
+
 atomic<bool> run(true);
 ChatLogger logger;
+
+void signalHandler(int){
+    run = false;
+}
 
 void recvLoop(int sockFd) {
     char buffer[1024];
@@ -32,6 +40,7 @@ void recvLoop(int sockFd) {
             // Close socket if server sent shutdown instruction
             if (strcmp(buffer, "SERVER_SHUTDOWN") == 0) {
                 LOG_INFO("Server has closed. Exiting...", logger);
+                run = false;
                 break;
             } else {
                 cout << buffer << endl;
@@ -58,9 +67,9 @@ int main(int argc, char *argv[]) {
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
-    int sockFd;
+    SocketRAII sockFd;
 
-    // logger.open("chat.log");
+    signal(SIGINT, signalHandler);
 
     // Print usage if no IP provided
     if (argc != 3) {
@@ -80,16 +89,16 @@ int main(int argc, char *argv[]) {
     hints.ai_socktype = SOCK_STREAM;
 
     if ((rv = getaddrinfo(argv[1], argv[2], &hints, &servinfo)) != 0) {
-        cerr << "getaddrinfo: " << gai_strerror(rv) << endl;
+        LOG_ERROR("getaddrinfo: " + string(gai_strerror(rv)), logger);
         return EXIT_FAILURE;
     }
 
     // Loop through results and bind to first available address
     for (p = servinfo; p != nullptr; p = p->ai_next) {
         // Create socket
-        sockFd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        if (sockFd == -1) {
-            cerr << "Error creating socket" << endl;
+        sockFd = SocketRAII(socket(p->ai_family, p->ai_socktype, p->ai_protocol));
+        if (sockFd.get() == -1) {
+            LOG_ERROR("Error creating socket: " + string(strerror(errno)), logger);
             continue;
         }
 
@@ -100,9 +109,8 @@ int main(int argc, char *argv[]) {
         LOG_DEBUG("Attempting connection to " + string(s), logger);
 
         // Connect to server
-        if (connect(sockFd, p->ai_addr, p->ai_addrlen) == -1) {
-            cerr << "Error connecting to server" << endl;
-            close(sockFd);
+        if (connect(sockFd.get(), p->ai_addr, p->ai_addrlen) == -1) {
+            LOG_ERROR("Error connecting to server: " + string(strerror(errno)), logger);
             continue;
         }
         break;
@@ -125,15 +133,30 @@ int main(int argc, char *argv[]) {
     cout << "----------------------------------------" << endl;
     cout << "Write message for server, or '/help' for a list of commands:" << endl;
 
-    thread recvThread(recvLoop, sockFd);
+    thread recvThread(recvLoop, sockFd.get());
 
     while (run) {
+        if(!run) {
+            break;
+        }
         string message;
         getline(cin, message);
         if (!run) {
             break;
         }
-        send(sockFd, message.c_str(), message.length(), 0);
+        if(message.empty()) {
+            continue;
+        }
+        if(message.length() > MAX_MSG_LENGTH) {
+            LOG_ERROR("Message too long.", logger);
+            continue;
+        }
+        size_t sent = send(sockFd.get(), message.c_str(), message.length(), 0);
+        if (sent == -1) {
+            LOG_ERROR("Error sending message to server.", logger);
+            run = false;
+            break;
+        }
 #ifdef LOCAL_EXIT
         if (message == "exit") {
             run = false;
@@ -144,7 +167,6 @@ int main(int argc, char *argv[]) {
         }
     }
     recvThread.join();
-    close(sockFd);
-    // logger.close();
+    cout << "Client exiting." << endl;
     return EXIT_SUCCESS;
 }

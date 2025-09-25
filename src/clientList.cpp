@@ -9,14 +9,16 @@ clientList.cpp - Client vector management functions
 #include <string>
 #include <sys/socket.h>
 #include <vector>
+#include "../include/log.hpp"
 
 using namespace std;
+
+ChatLogger logger;
 
 void ThreadClientList::addClient(int fd, const string &username) {
     lock_guard<mutex> lock(mtx);
     clients.push_back({fd, username});
-    cout << "Added client with fd " << fd << " and username " << username << " to linked list."
-         << endl;
+    LOG_INFO("Added client with fd " + to_string(fd) + " and username " + username + " to linked list.", logger);
 }
 
 void ThreadClientList::deleteClient(int fd) {
@@ -24,16 +26,16 @@ void ThreadClientList::deleteClient(int fd) {
     clients.erase(remove_if(clients.begin(), clients.end(),
                             [fd](const ClientInfo &client) { return client.fd == fd; }),
                   clients.end());
-    cout << "Deleted client with fd " << fd << " from linked list." << endl;
+    LOG_INFO("Deleted client with fd " + to_string(fd) + " from linked list.", logger);
 }
 
 void ThreadClientList::printList() {
     lock_guard<mutex> lock(mtx);
-    cout << "Printing list of clients..." << endl;
+    LOG_INFO("Printing list of clients...", logger);
     for (const auto &client : clients) {
-        cout << "Client FD: " << client.fd << ", Username: " << client.username;
+        LOG_INFO("Client FD: " + to_string(client.fd) + ", Username: " + client.username, logger);
     }
-    cout << endl;
+    LOG_INFO("", logger);
 }
 
 vector<int> ThreadClientList::getAllFds() {
@@ -88,15 +90,22 @@ void ThreadClientList::changeUsername(int fd, const string &newName, int maxLeng
     lock_guard<mutex> lock(mtx);
     // Username can't be empty or longer than max length
     if (newName.empty() || newName.length() > static_cast<string::size_type>(maxLength)) {
-        cerr << "Username must be between 1 and " << maxLength << " characters." << endl;
-        send(fd, "Username must be between 1 and 64 characters.\n", 65, 0);
+        LOG_ERROR("Username must be between 1 and " + to_string(maxLength) + " characters.", logger);
+        send(fd, "Username must be between 1 and " + to_string(maxLength) + " characters.\n", 65, 0);
+        return;
+    }
+
+    //Check for control characters
+    if(any_of(newName.begin(), newName.end(), [](char c){ return !isprint(c); })) {
+        LOG_ERROR("Username contains invalid characters.", logger);
+        send(fd, "Username contains invalid characters.\n", 38, 0);
         return;
     }
 
     // Check if user isn't already taken
     for (const auto &client : clients) {
         if (client.username == newName) {
-            cerr << "Username '" << newName << "' is already taken." << endl;
+            LOG_ERROR("Username '" + newName + "' is already taken.", logger);
             send(fd, "Username is already taken.\n", 28, 0);
             return;
         }
@@ -104,7 +113,7 @@ void ThreadClientList::changeUsername(int fd, const string &newName, int maxLeng
 
     // Check if user has space (it can't)
     if (newName.find(' ') != string::npos) {
-        cerr << "Username can't contain spaces." << endl;
+        LOG_ERROR("Username can't contain spaces.", logger);
         send(fd, "Username can't contain spaces.\n", 32, 0);
         return;
     }
@@ -113,7 +122,7 @@ void ThreadClientList::changeUsername(int fd, const string &newName, int maxLeng
     for (auto &client : clients) {
         if (client.fd == fd) {
             client.username = newName;
-            cout << "Changed username for client " << fd << " to " << newName << endl;
+            LOG_INFO("Changed username for client " + to_string(fd) + " to " + newName, logger);
             string confirmationMessage = "Your name has been changed to " + newName + "\n";
             send(fd, confirmationMessage.c_str(), confirmationMessage.length(), 0);
             return;

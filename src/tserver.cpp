@@ -2,6 +2,7 @@
 #include "../include/commands.hpp"
 #include "../include/log.hpp"
 #include "../include/utils.hpp"
+#include "../include/socketRAII.hpp"
 #include <arpa/inet.h>
 #include <atomic>
 #include <cstring>
@@ -14,6 +15,7 @@
 #include <thread>
 #include <unistd.h>
 #include <vector>
+#include <csignal>
 
 using namespace std;
 
@@ -24,6 +26,7 @@ constexpr int USERNAME_MAX_LENGTH = 64;
 atomic<bool> run(true);
 ThreadClientList clientList;
 ChatLogger logger;
+vector<thread> clientThreads;
 
 void signalHandler(int signum) {
     LOG_DEBUG("Signal " + to_string(signum) + " received!", logger);
@@ -36,25 +39,28 @@ void handleClient(int clientFd) {
     tv.tv_usec = 0;
     if (setsockopt(clientFd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv) == -1) {
         LOG_ERROR("Error setting socket receive timeout: " + string(strerror(errno)), logger);
-        close(clientFd);
-        clientList.deleteClient(clientFd);
+        close(clientFd.get());
+        clientList.deleteClient(clientFd.get());
         return;
     }
     while (run) {
         vector<char> buffer(MAXDATASIZE);
 
-        if (!isUTF8(buffer.data())) {
-            LOG_ERROR("Received invalid UTF-8 data from " + clientList.getUsernameFromFd(clientFd) +
-                          ". Disconnecting client.",
-                      logger);
-            close(clientFd);
-            clientList.deleteClient(clientFd);
-            return;
-        }
-
         ssize_t bytesReceived = recv(clientFd, static_cast<char *>(buffer.data()), MAXDATASIZE, 0);
         if (bytesReceived > 0) {
             string msg(buffer.data(), bytesReceived);
+            if(msg.length() > MAXDATASIZE) {
+                LOG_ERROR("Message too long from " + clientList.getUsernameFromFd(clientFd), logger);
+                continue;
+            }
+            if (!isUTF8(msg)) {
+                LOG_ERROR("Received invalid UTF-8 data from " + clientList.getUsernameFromFd(clientFd) +
+                            ". Disconnecting client.",
+                        logger);
+                close(clientFd.get());
+                clientList.deleteClient(clientFd.get());
+                return;
+            }
             if (!msg.empty() && msg[0] == '/') {
                 if (msg == "/exit") {
                     send(clientFd, "SERVER_SHUTDOWN", 16, 0);
@@ -97,13 +103,16 @@ void handleClient(int clientFd) {
         }
     }
     LOG_INFO("Client " + clientList.getUsernameFromFd(clientFd) + " has disconnected.", logger);
-    close(clientFd);
+    close(clientFd.get());
     clientList.deleteClient(clientFd);
 }
 
 int main(int argc, char *argv[]) {
     string port = "5223"; // Default port
-    logger.open("server.log");
+    if(!logger.open("server.log")) {
+        cerr << "Failed to open log file. Exiting." << endl;
+        return EXIT_FAILURE;
+    }
 
     // Print usage if no port is provided
     if (argc > 2) {
@@ -130,23 +139,23 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    int serverFd;
+    SocketRAII serverFd;
     int yes = 1;
     for (p = servInfo; p != nullptr; p = p->ai_next) {
-        serverFd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        if (serverFd == -1) {
+        serverFd = SocketRAII(socket(p->ai_family, p->ai_socktype, p->ai_protocol));
+        if (serverFd.get() == -1) {
             LOG_ERROR("Error creating socket: " + string(strerror(errno)), logger);
             continue;
         }
-        if (setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+        if (setsockopt(serverFd.get(), SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
             LOG_ERROR("Error setting SO_REUSEADDR: " + string(strerror(errno)), logger);
-            close(serverFd);
+            close(serverFd.get());
             continue;
         }
 
-        if (::bind(serverFd, p->ai_addr, p->ai_addrlen) == -1) {
+        if (::bind(serverFd.get(), p->ai_addr, p->ai_addrlen) == -1) {
             LOG_ERROR("Error binding socket: " + string(strerror(errno)), logger);
-            close(serverFd);
+            close(serverFd.get());
             continue;
         }
         break;
@@ -158,21 +167,21 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    if (listen(serverFd, BACKLOG) == -1) {
+    if (listen(serverFd.get(), BACKLOG) == -1) {
         LOG_ERROR("Error listening on socket", logger);
-        close(serverFd);
+        close(serverFd.get());
         return EXIT_FAILURE;
     }
 
-    int flags = fcntl(serverFd, F_GETFL, 0);
+    int flags = fcntl(serverFd.get(), F_GETFL, 0);
     if (flags == -1) {
         LOG_ERROR("Error getting socket flags: " + string(strerror(errno)), logger);
-        close(serverFd);
+        close(serverFd.get());
         return EXIT_FAILURE;
     }
-    if (fcntl(serverFd, F_SETFL, flags | O_NONBLOCK) == -1) {
+    if (fcntl(serverFd.get(), F_SETFL, flags | O_NONBLOCK) == -1) {
         LOG_ERROR("Error setting socket to non-blocking: " + string(strerror(errno)), logger);
-        close(serverFd);
+        close(serverFd.get());
         return EXIT_FAILURE;
     }
 
@@ -186,7 +195,7 @@ int main(int argc, char *argv[]) {
     // Main accept loop
     vector<thread> client_threads;
     while (run) {
-        int clientFd = accept(serverFd, nullptr, nullptr);
+        SocketRAII clientFd = accept(serverFd.get(), nullptr, nullptr);
         if (!run) {
             break;
         }
@@ -202,12 +211,17 @@ int main(int argc, char *argv[]) {
                 this_thread::sleep_for(chrono::milliseconds(100));
                 continue;
             }
-            cerr << "Error accepting client connection" << endl;
+            LOG_ERROR("Error accepting client connection: " + string(strerror(errno)), logger);
             continue;
         }
-        clientList.addClient(clientFd, "Client" + to_string(clientFd));
-        thread t([clientFd]() { handleClient(clientFd); });
-        t.detach();
+        clientList.addClient(clientFd.get(), "Client" + to_string(clientFd.get()));
+        clientThreads.emplace_back([clientFd]() { handleClient(clientFd.get()); });
+        LOG_INFO("New client connected with fd " + to_string(clientFd.get()), logger);
+    }
+    //Join client threads before shutting down
+    for (auto &t : clientThreads) {
+        if (t.joinable())
+            t.join();
     }
     const string shutdownMsg = "SERVER_SHUTDOWN";
     LOG_DEBUG("Termination signal received. Shutting down...", logger);
@@ -217,7 +231,7 @@ int main(int argc, char *argv[]) {
         LOG_DEBUG("Closing client with fd " + to_string(fd), logger);
         close(fd);
     }
-    close(serverFd);
+    close(serverFd.get());
     LOG_INFO("Server shut down.", logger);
     return EXIT_SUCCESS;
 }
