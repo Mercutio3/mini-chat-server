@@ -2,9 +2,9 @@ name: C++ Build and Test
 
 on:
   push:
-    branches: [ main, cpp-multithreading ]
+    branches: [ main, main-cpp ]
   pull_request:
-    branches: [ main, cpp-multithreading ]
+    branches: [ main, main-cpp ]
 
 jobs:
   build:

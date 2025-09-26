@@ -6,6 +6,7 @@ client.cpp - Client program and its client-side operations
 #include "../include/socketRAII.hpp"
 #include <arpa/inet.h>
 #include <atomic>
+#include <csignal>
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
@@ -16,17 +17,54 @@ client.cpp - Client program and its client-side operations
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
-#include <csignal>
 
 using namespace std;
 
 constexpr int MAX_MSG_LENGTH = 512;
 
 atomic<bool> run(true);
-ChatLogger logger;
 
-void signalHandler(int){
-    run = false;
+ChatLogger logger;
+string username = "Unknown";
+
+string clientPrefix(const string &username, const string &msg) {
+    return "(Client [" + username + "]) " + msg;
+}
+
+void inputLoop(SocketRAII &sockFd) {
+    while (run) {
+        if (!run) {
+            break;
+        }
+        string message;
+        if (!getline(cin, message)) {
+            break;
+        }
+        if (!run) {
+            break;
+        }
+        if (message.empty()) {
+            continue;
+        }
+        if (message.length() > MAX_MSG_LENGTH) {
+            LOG_ERROR(clientPrefix(username, "Message too long."), logger);
+            continue;
+        }
+        size_t sent = send(sockFd.get(), message.c_str(), message.length(), 0);
+        if (sent == static_cast<size_t>(-1)) {
+            LOG_ERROR(clientPrefix(username, "Error sending message to server."), logger);
+            run = false;
+            break;
+        }
+#ifdef LOCAL_EXIT
+        if (message == "exit") {
+            run = false;
+        }
+#endif
+        if (!run) {
+            break;
+        }
+    }
 }
 
 void recvLoop(int sockFd) {
@@ -36,10 +74,16 @@ void recvLoop(int sockFd) {
         ssize_t bytesReceived = recv(sockFd, buffer, sizeof(buffer) - 1, 0);
         if (bytesReceived > 0) {
             buffer[bytesReceived] = '\0';
+            string msg(buffer);
+
+            string prefix = "Your name has been changed to";
+            if (msg.rfind(prefix, 0) == 0) {
+                username = msg.substr(prefix.length() + 1);
+            }
 
             // Close socket if server sent shutdown instruction
             if (strcmp(buffer, "SERVER_SHUTDOWN") == 0) {
-                LOG_INFO("Server has closed. Exiting...", logger);
+                LOG_INFO(clientPrefix(username, "Server has closed. Exiting..."), logger);
                 run = false;
                 break;
             } else {
@@ -50,12 +94,12 @@ void recvLoop(int sockFd) {
 #endif
             }
         } else if (bytesReceived == 0) { // Client either disconnected or error occurred
-            LOG_INFO("Server disconnected.", logger);
+            LOG_INFO(clientPrefix(username, "Server disconnected."), logger);
             run = false;
             break;
         } else if (bytesReceived == -1) {
             if (errno == ECONNRESET || errno == ENOTCONN) {
-                LOG_ERROR("Connection closed by server.", logger);
+                LOG_ERROR(clientPrefix(username, "Connection closed by server."), logger);
                 run = false;
                 break;
             }
@@ -69,18 +113,25 @@ int main(int argc, char *argv[]) {
     char s[INET6_ADDRSTRLEN];
     SocketRAII sockFd;
 
-    signal(SIGINT, signalHandler);
+    if (!logger.open("server.log")) {
+        cerr << "Failed to open log file. Exiting." << endl;
+        return EXIT_FAILURE;
+    }
 
     // Print usage if no IP provided
     if (argc != 3) {
         cerr << "Usage: " << argv[0] << " <hostname> <port>" << endl;
-        LOG_ERROR("Usage: ./client <server ip/hostname> <port>", logger);
+        LOG_ERROR(clientPrefix("Incoming client connection",
+                               "Usage: ./client <server ip/hostname> <port>"),
+                  logger);
         return EXIT_FAILURE;
     }
 
     int intPort = atoi(argv[2]);
     if (intPort < 1024 || intPort > 65535) {
-        LOG_ERROR("Invalid port. Port must be between 1024 and 65535.", logger);
+        LOG_ERROR(clientPrefix("Incoming client connection",
+                               "Invalid port. Port must be between 1024 and 65535."),
+                  logger);
         return EXIT_FAILURE;
     }
 
@@ -89,7 +140,9 @@ int main(int argc, char *argv[]) {
     hints.ai_socktype = SOCK_STREAM;
 
     if ((rv = getaddrinfo(argv[1], argv[2], &hints, &servinfo)) != 0) {
-        LOG_ERROR("getaddrinfo: " + string(gai_strerror(rv)), logger);
+        LOG_ERROR(
+            clientPrefix("Incoming client connection", "getaddrinfo: " + string(gai_strerror(rv))),
+            logger);
         return EXIT_FAILURE;
     }
 
@@ -98,7 +151,9 @@ int main(int argc, char *argv[]) {
         // Create socket
         sockFd = SocketRAII(socket(p->ai_family, p->ai_socktype, p->ai_protocol));
         if (sockFd.get() == -1) {
-            LOG_ERROR("Error creating socket: " + string(strerror(errno)), logger);
+            LOG_ERROR(clientPrefix("Incoming client connection",
+                                   "Error creating socket: " + string(strerror(errno))),
+                      logger);
             continue;
         }
 
@@ -106,18 +161,22 @@ int main(int argc, char *argv[]) {
                   (p->ai_family == AF_INET) ? (void *)&((sockaddr_in *)p->ai_addr)->sin_addr
                                             : (void *)&((sockaddr_in6 *)p->ai_addr)->sin6_addr,
                   s, sizeof s);
-        LOG_DEBUG("Attempting connection to " + string(s), logger);
+        LOG_DEBUG(
+            clientPrefix("Incoming client connection", "Attempting connection to " + string(s)),
+            logger);
 
         // Connect to server
         if (connect(sockFd.get(), p->ai_addr, p->ai_addrlen) == -1) {
-            LOG_ERROR("Error connecting to server: " + string(strerror(errno)), logger);
+            LOG_ERROR(clientPrefix("Incoming client connection",
+                                   "Error connecting to server: " + string(strerror(errno))),
+                      logger);
             continue;
         }
         break;
     }
 
     if (p == nullptr) {
-        LOG_ERROR("Failed to connect.", logger);
+        LOG_ERROR(clientPrefix("Incoming client connection", "Failed to connect."), logger);
         freeaddrinfo(servinfo);
         return EXIT_FAILURE;
     }
@@ -134,38 +193,12 @@ int main(int argc, char *argv[]) {
     cout << "Write message for server, or '/help' for a list of commands:" << endl;
 
     thread recvThread(recvLoop, sockFd.get());
+    thread inputThread(inputLoop, ref(sockFd));
 
     while (run) {
-        if(!run) {
-            break;
-        }
-        string message;
-        getline(cin, message);
-        if (!run) {
-            break;
-        }
-        if(message.empty()) {
-            continue;
-        }
-        if(message.length() > MAX_MSG_LENGTH) {
-            LOG_ERROR("Message too long.", logger);
-            continue;
-        }
-        size_t sent = send(sockFd.get(), message.c_str(), message.length(), 0);
-        if (sent == -1) {
-            LOG_ERROR("Error sending message to server.", logger);
-            run = false;
-            break;
-        }
-#ifdef LOCAL_EXIT
-        if (message == "exit") {
-            run = false;
-        }
-#endif
-        if (!run) {
-            break;
-        }
+        this_thread::sleep_for(chrono::milliseconds(100));
     }
+    inputThread.join();
     recvThread.join();
     cout << "Client exiting." << endl;
     return EXIT_SUCCESS;

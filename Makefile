@@ -1,5 +1,8 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -Werror -g -Iinclude
+CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -g -Iinclude
+
+GTEST_INC = third_party/googletest/googletest/include
+GTEST_LIB = third_party/googletest/lib
 
 SERVER_OBJS = src/tserver.o src/clientList.o src/commands.o src/log.o
 SERVER_TARGET = tserver
@@ -24,13 +27,13 @@ $(CLIENT_TARGET): $(CLIENT_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(CLIENT_OBJS)
 
 $(TEST_CLIENTLIST): $(TEST_CLIENTLIST_SRC)
-	$(CXX) $(CXXFLAGS) -o $@ $(TEST_CLIENTLIST_SRC)
+	$(CXX) $(CXXFLAGS) -I$(GTEST_INC) -DMOCK_SEND -o $@ $(TEST_CLIENTLIST_SRC) -L$(GTEST_LIB) -lgtest -lgtest_main -lpthread
 
 $(TEST_COMMANDS): $(TEST_COMMANDS_SRC)
-	$(CXX) $(CXXFLAGS) -DMOCK_SEND -o $@ $(TEST_COMMANDS_SRC)
+	$(CXX) $(CXXFLAGS) -I$(GTEST_INC) -DMOCK_SEND -o $@ $(TEST_COMMANDS_SRC) -L$(GTEST_LIB) -lgtest -lgtest_main -lpthread
 
 $(TEST_UTILS): $(TEST_UTILS_SRC)
-	$(CXX) $(CXXFLAGS) -o $@ $(TEST_UTILS_SRC)
+	$(CXX) $(CXXFLAGS) -I$(GTEST_INC) -o $@ $(TEST_UTILS_SRC) -L$(GTEST_LIB) -lgtest -lgtest_main -lpthread
 
 src/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@

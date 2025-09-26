@@ -1,10 +1,11 @@
 #include "../include/clientList.hpp"
 #include "../include/commands.hpp"
 #include "../include/log.hpp"
-#include "../include/utils.hpp"
 #include "../include/socketRAII.hpp"
+#include "../include/utils.hpp"
 #include <arpa/inet.h>
 #include <atomic>
+#include <csignal>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
@@ -15,7 +16,6 @@
 #include <thread>
 #include <unistd.h>
 #include <vector>
-#include <csignal>
 
 using namespace std;
 
@@ -33,11 +33,11 @@ void signalHandler(int signum) {
     run = false;
 }
 
-void handleClient(int clientFd) {
+void handleClient(SocketRAII clientFd) {
     struct timeval tv;
     tv.tv_sec = 1; // 1 second timeout
     tv.tv_usec = 0;
-    if (setsockopt(clientFd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv) == -1) {
+    if (setsockopt(clientFd.get(), SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv) == -1) {
         LOG_ERROR("Error setting socket receive timeout: " + string(strerror(errno)), logger);
         close(clientFd.get());
         clientList.deleteClient(clientFd.get());
@@ -49,14 +49,15 @@ void handleClient(int clientFd) {
         ssize_t bytesReceived = recv(clientFd, static_cast<char *>(buffer.data()), MAXDATASIZE, 0);
         if (bytesReceived > 0) {
             string msg(buffer.data(), bytesReceived);
-            if(msg.length() > MAXDATASIZE) {
-                LOG_ERROR("Message too long from " + clientList.getUsernameFromFd(clientFd), logger);
+            if (msg.length() > MAXDATASIZE) {
+                LOG_ERROR("Message too long from " + clientList.getUsernameFromFd(clientFd),
+                          logger);
                 continue;
             }
             if (!isUTF8(msg)) {
-                LOG_ERROR("Received invalid UTF-8 data from " + clientList.getUsernameFromFd(clientFd) +
-                            ". Disconnecting client.",
-                        logger);
+                LOG_ERROR("Received invalid UTF-8 data from " +
+                              clientList.getUsernameFromFd(clientFd) + ". Disconnecting client.",
+                          logger);
                 close(clientFd.get());
                 clientList.deleteClient(clientFd.get());
                 return;
@@ -67,12 +68,13 @@ void handleClient(int clientFd) {
                     break;
                 } else if (msg == "/help") {
                     processHelpCmd(clientFd);
-                    LOG_INFO("Sent list of commands to " + clientList.getUsernameFromFd(clientFd),
+                    LOG_INFO("Sent list of commands to " +
+                                 clientList.getUsernameFromFd(clientFd.get()),
                              logger);
                 } else if (msg == "/list") {
                     processListCmd(clientFd, clientList);
                     LOG_INFO("Sent list of connected users to " +
-                                 clientList.getUsernameFromFd(clientFd),
+                                 clientList.getUsernameFromFd(clientFd.get()),
                              logger);
                 } else if (msg.substr(0, 6) == "/name ") {
                     processNameCmd(clientFd, clientList, msg.substr(6), USERNAME_MAX_LENGTH);
@@ -80,9 +82,10 @@ void handleClient(int clientFd) {
                     processMsgCmd(clientFd, clientList, msg.substr(5));
                 }
             } else {
-                string fullMsg = clientList.getUsernameFromFd(clientFd) + ": " + msg;
-                LOG_INFO("Broadcasting message from " + clientList.getUsernameFromFd(clientFd) +
-                             " to other clients...",
+                string fullMsg = clientList.getUsernameFromFd(clientFd.get()) + ": " + msg;
+                LOG_INFO("Broadcasting message from " +
+                             clientList.getUsernameFromFd(clientFd.get()) +
+                             " to other clients: " + msg,
                          logger);
 #ifdef RECEIVE_OWN_MESSAGE
                 clientList.broadcastMessage(fullMsg, -1);
@@ -92,7 +95,7 @@ void handleClient(int clientFd) {
 #endif
             }
         } else if (bytesReceived == 0) {
-            LOG_DEBUG("Client " + clientList.getUsernameFromFd(clientFd) + " disconnected.",
+            LOG_DEBUG("Client " + clientList.getUsernameFromFd(clientFd.get()) + " disconnected.",
                       logger);
             break; // Client disconnected
         } else if (bytesReceived == -1) {
@@ -102,14 +105,15 @@ void handleClient(int clientFd) {
             // Otherwise, keep looping (timeout)
         }
     }
-    LOG_INFO("Client " + clientList.getUsernameFromFd(clientFd) + " has disconnected.", logger);
+    LOG_INFO("Client " + clientList.getUsernameFromFd(clientFd.get()) + " has disconnected.",
+             logger);
     close(clientFd.get());
-    clientList.deleteClient(clientFd);
+    clientList.deleteClient(clientFd.get());
 }
 
 int main(int argc, char *argv[]) {
     string port = "5223"; // Default port
-    if(!logger.open("server.log")) {
+    if (!logger.open("server.log")) {
         cerr << "Failed to open log file. Exiting." << endl;
         return EXIT_FAILURE;
     }
@@ -195,11 +199,11 @@ int main(int argc, char *argv[]) {
     // Main accept loop
     vector<thread> client_threads;
     while (run) {
-        SocketRAII clientFd = accept(serverFd.get(), nullptr, nullptr);
+        SocketRAII clientFd = SocketRAII(accept(serverFd.get(), nullptr, nullptr));
         if (!run) {
             break;
         }
-        if (clientFd == -1) {
+        if (clientFd.get() == -1) {
             if (errno == EINTR) {
                 if (!run) {
                     break;
@@ -215,10 +219,11 @@ int main(int argc, char *argv[]) {
             continue;
         }
         clientList.addClient(clientFd.get(), "Client" + to_string(clientFd.get()));
-        clientThreads.emplace_back([clientFd]() { handleClient(clientFd.get()); });
         LOG_INFO("New client connected with fd " + to_string(clientFd.get()), logger);
+        clientThreads.emplace_back(
+            [clientFd = std::move(clientFd)]() mutable { handleClient(std::move(clientFd)); });
     }
-    //Join client threads before shutting down
+    // Join client threads before shutting down
     for (auto &t : clientThreads) {
         if (t.joinable())
             t.join();

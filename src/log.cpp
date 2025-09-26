@@ -3,12 +3,12 @@ log.cpp - Chat logging function and file management
 */
 
 #include "../include/log.hpp"
+#include <cerrno>
+#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <mutex>
 #include <sstream>
-#include <cstring>
-#include <cerrno>
 
 using namespace std;
 
@@ -39,7 +39,7 @@ bool ChatLogger::log(const string &msg) {
     char timebuf[32];
     strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S UTC", gmtime(&now));
     logFile << "[" << timebuf << "] " << msg << endl;
-    if(!logFile) {
+    if (!logFile) {
         cerr << "Error writing to log file: " << strerror(errno) << endl;
         return false;
     }

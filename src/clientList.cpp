@@ -3,22 +3,42 @@ clientList.cpp - Client vector management functions
 */
 
 #include "../include/clientList.hpp"
+#include "../include/log.hpp"
 #include <algorithm>
 #include <iostream>
 #include <mutex>
 #include <string>
 #include <sys/socket.h>
 #include <vector>
-#include "../include/log.hpp"
 
 using namespace std;
 
-ChatLogger logger;
+#ifdef MOCK_SEND
+ssize_t mock_send(int sockfd, const void *buf, size_t len, int flags);
+#define send mock_send
+#endif
 
 void ThreadClientList::addClient(int fd, const string &username) {
     lock_guard<mutex> lock(mtx);
+
+    if (username.empty()) {
+        LOG_ERROR("Attempted to add client with empty username.", logger);
+        send(fd, "Username cannot be empty.\n", 26, 0);
+        return;
+    }
+
+    for (const auto &client : clients) {
+        if (client.username == username) {
+            LOG_ERROR("Username: " + username + " is already taken.", logger);
+            send(fd, "Username is already taken.\n", 28, 0);
+            return;
+        }
+    }
+
     clients.push_back({fd, username});
-    LOG_INFO("Added client with fd " + to_string(fd) + " and username " + username + " to linked list.", logger);
+    LOG_INFO("Added client with fd " + to_string(fd) + " and username " + username +
+                 " to linked list.",
+             logger);
 }
 
 void ThreadClientList::deleteClient(int fd) {
@@ -90,13 +110,15 @@ void ThreadClientList::changeUsername(int fd, const string &newName, int maxLeng
     lock_guard<mutex> lock(mtx);
     // Username can't be empty or longer than max length
     if (newName.empty() || newName.length() > static_cast<string::size_type>(maxLength)) {
-        LOG_ERROR("Username must be between 1 and " + to_string(maxLength) + " characters.", logger);
-        send(fd, "Username must be between 1 and " + to_string(maxLength) + " characters.\n", 65, 0);
+        string errorMessage =
+            "Username must be between 1 and " + to_string(maxLength) + " characters.";
+        LOG_ERROR(errorMessage, logger);
+        send(fd, errorMessage.c_str(), errorMessage.length(), 0);
         return;
     }
 
-    //Check for control characters
-    if(any_of(newName.begin(), newName.end(), [](char c){ return !isprint(c); })) {
+    // Check for control characters
+    if (any_of(newName.begin(), newName.end(), [](char c) { return !isprint(c); })) {
         LOG_ERROR("Username contains invalid characters.", logger);
         send(fd, "Username contains invalid characters.\n", 38, 0);
         return;
@@ -104,7 +126,7 @@ void ThreadClientList::changeUsername(int fd, const string &newName, int maxLeng
 
     // Check if user isn't already taken
     for (const auto &client : clients) {
-        if (client.username == newName) {
+        if (client.username == newName && client.fd != fd) {
             LOG_ERROR("Username '" + newName + "' is already taken.", logger);
             send(fd, "Username is already taken.\n", 28, 0);
             return;

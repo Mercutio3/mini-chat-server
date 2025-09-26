@@ -5,19 +5,18 @@
 
 class SocketRAII {
     int fd;
-    public:
+
+  public:
     explicit SocketRAII(int fd = -1) : fd(fd) {}
     ~SocketRAII() {
         if (fd != -1) {
             close(fd);
         }
     }
-    SocketRAII(const SocketRAII&) = delete;
-    SocketRAII& operator=(const SocketRAII&) = delete;
-    SocketRAII(SocketRAII&& other) noexcept : fd(other.fd) {
-        other.fd = -1;
-    }
-    SocketRAII& operator=(SocketRAII&& other) noexcept {
+    SocketRAII(const SocketRAII &) = delete;
+    SocketRAII &operator=(const SocketRAII &) = delete;
+    SocketRAII(SocketRAII &&other) noexcept : fd(other.fd) { other.fd = -1; }
+    SocketRAII &operator=(SocketRAII &&other) noexcept {
         if (this != &other) {
             if (fd != -1) {
                 close(fd);
