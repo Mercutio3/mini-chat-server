@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -g -Iinclude
 
 GTEST_INC = third_party/googletest/googletest/include
-GTEST_LIB = third_party/googletest/lib
+GTEST_LIB = third_party/googletest/build/lib
 
 SERVER_OBJS = src/tserver.o src/clientList.o src/commands.o src/log.o
 SERVER_TARGET = tserver
