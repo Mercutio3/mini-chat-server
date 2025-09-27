@@ -1,7 +1,7 @@
 /**
  * @file client.cpp
  * @brief Client program to connect to the chat server and handle user input/output.
-*/
+ */
 
 #include "../include/log.hpp"
 #include "../include/socketRAII.hpp"
@@ -39,11 +39,11 @@ string clientPrefix(const string &username, const string &msg) {
 
 /**
  * @brief Thread function to handle user input and send messages to the server.
- * 
+ *
  * Continuously reads user input from stdin, sends messages to server,
  * and processes local commands. Exits when user types "exit" or when
  * the server disconnects.
- * 
+ *
  * @param sockFd Reference to the SocketRAII object representing the server socket.
  */
 void inputLoop(SocketRAII &sockFd) {
@@ -82,13 +82,13 @@ void inputLoop(SocketRAII &sockFd) {
     }
 }
 
-/** 
+/**
  * @brief Thread function to receive messages from the server and display them.
- * 
+ *
  * Continuously listens for messages from server, displays them to stdout,
  * and handles server shutdown messages. Exits when server disconnects
  * or sends a shutdown instruction.
- * 
+ *
  * @param sockFd Socket file descriptor connected to the server.
  */
 void recvLoop(int sockFd) {
@@ -133,11 +133,11 @@ void recvLoop(int sockFd) {
 
 /**
  * @brief Main client startup function.
- * 
+ *
  * Initializes client, connects to server, and starts input/output threads
  * for user interaction, with graceful shutdown on disconnection or user
  * exit command.
- * 
+ *
  * @param argc Argument count.
  * @param argv Argument vector. Requires server IP/hostname and port number.
  * @return EXIT_SUCCESS on successful execution, EXIT_FAILURE otherwise.

@@ -10,7 +10,7 @@
 
 /**
  * @brief RAII wrapper for socket file descriptors.
- * 
+ *
  * Automatically closes the socket when the object goes out of scope.
  */
 class SocketRAII {

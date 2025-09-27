@@ -15,9 +15,9 @@ using namespace std;
 
 /**
  * @brief Opens the log file for appending log messages.
- * 
+ *
  * If file cannot be opened, error message is printed to stderr.
- * 
+ *
  * @param filename The name of log file to open.
  * @return true if file opened successfully, false otherwise.
  */
@@ -43,7 +43,7 @@ void ChatLogger::close() {
 
 /**
  * @brief Logs message to log file with timestamp.
- * 
+ *
  * Prepends a UTC timestamp to the message and writes it to the log file.
  * If log file isn't open or a writing error occurs, error message is
  * printed to stderr.

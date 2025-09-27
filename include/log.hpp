@@ -14,7 +14,7 @@ using namespace std;
 
 /**
  * @brief Simple thread-safe logger class.
- * 
+ *
  * Provides methods to open, close, and log messages to a file.
  */
 class ChatLogger {

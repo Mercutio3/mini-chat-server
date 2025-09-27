@@ -47,7 +47,7 @@ vector<thread> clientThreads;
 
 /**
  * @brief Signal handler to gracefully shut down the server.
- * 
+ *
  * Sets `run` atomic boolean to false when SIGINT or SIGTERM is received;
  * server exits main loop and cleans up resources before shutting down.
  *
@@ -60,7 +60,7 @@ void signalHandler(int signum) {
 
 /**
  * @brief Handles communication with a connected client.
- * 
+ *
  * Manages interaction with a connected client, including receiving messages,
  * processing commands, and broadcasting messages. Also handles client
  * disconnection with proper cleanup.
@@ -147,11 +147,11 @@ void handleClient(SocketRAII clientFd) {
 
 /**
  * @brief Main server startup function.
- * 
+ *
  * Initializes server, sets up listening socket, and enters main accept loop
  * to handle incoming client connections. Also manages graceful shutdown on
  * receiving termination signals.
- * 
+ *
  * @param argc Argument count.
  * @param argv Argument vector. Optionally takes a port number as the first argument.
  * @return EXIT_SUCCESS on successful execution, EXIT_FAILURE otherwise.

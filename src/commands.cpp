@@ -39,7 +39,7 @@ void processNameCmd(int clientFd, ThreadClientList &clientList, const string &ne
     clientList.changeUsername(clientFd, newName, maxLength);
 }
 
- void processMsgCmd(int clientFd, ThreadClientList &clientList, const string &msg) {
+void processMsgCmd(int clientFd, ThreadClientList &clientList, const string &msg) {
     // Parse and verify formatting
     size_t firstSpace = msg.find(' ');
     if (firstSpace == string::npos) {

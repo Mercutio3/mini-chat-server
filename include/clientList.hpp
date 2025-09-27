@@ -22,7 +22,7 @@ struct ClientInfo {
 
 /**
  * @brief Thread-safe list of connected clients.
- * 
+ *
  * Provides methods to add, remove, and query clients.
  */
 class ThreadClientList {
@@ -84,11 +84,11 @@ class ThreadClientList {
 
     /**
      * @brief Change a client's username.
-     * 
+     *
      * Attempts to change a client's username. Validates that the new name
      * isn't empty, doesn't exceed maximum length, and isn't taken. Sends
      * success or error messages back to client accordingly.
-     * 
+     *
      * @param fd File descriptor of the client.
      * @param newName New username for the client.
      * @param maxLength Maximum length for the username.
