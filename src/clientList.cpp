@@ -1,6 +1,7 @@
-/*
-clientList.cpp - Client vector management functions
-*/
+/**
+ * @file clientList.cpp
+ * @brief Client vector management functions.
+ */
 
 #include "../include/clientList.hpp"
 #include "../include/log.hpp"

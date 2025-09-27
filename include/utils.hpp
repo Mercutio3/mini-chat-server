@@ -1,9 +1,19 @@
+/**
+ * @file utils.hpp
+ * @brief Utility functions for string handling.
+ */
+
 #ifndef UTILS_H
 #define UTILS_H
 
 #include <iostream>
 #include <string>
 
+/**
+ * @brief Check if a string is valid UTF-8.
+ * @param s The string to check.
+ * @return True if the string is valid UTF-8, false otherwise.
+ */
 inline bool isUTF8(const std::string &s) {
     size_t i = 0, len = s.size();
     while (i < len) {

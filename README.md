@@ -1,66 +1,67 @@
-# Mini Chat Servers
+# Mini Chat Server - C++
 
-A pair of simple but professional multi-client chat servers written in C and C++.
+**Version 1.1**
 
-The C server started off as a simple echoing program, with support for multiple concurrent clients only via forking. To better handle more clients and to favor performant scalability, the server was rewritten to utilize the kqueue library. This unfortunately limits server compatibility to MacOS.
+This repo contains a pair of simple but professional multi-client chat servers written in C and C++.
 
-After the C server reached an acceptable release state, I decided to write a C++ implmentation with the same funcitonality, but using multithreading to handle multiple clients. The C project is contained in main, while the C++ project is in the "cpp-multithreading" branch.
+The C server, intially a simple echoing program with support for multiple concurrent clients only via forking, was rewritten to utilize the `kqueue` library. This unfortunately limited server compatibility to macOS.
 
-The goal of this project is to demonstrate my understanding of the skills in networking, OOP, multithreading, and event-driven programming aquired during my low-level programming courses, as well as the design, DevOps, and production-minded qualities upheld in my software engineering courses.
+To increase portability, I decided to write a C++ version of the server with identical functionality, instead using multithreading to handle multiple clients. Right now development is focused on this C++ server, contained in the `main-cpp` branch. For the C version, see the `main` branch.
 
-However, this server is NOT secure for production; it is simply a small open-source demo. Please see Limitations section for more.
+The goal of this project is to demonstrate my understanding of the skills in networking, OOP, multithreading, and event-driven programming aquired during my low-level programming courses, as well as the design, DevOps, and production-minded qualities upheld in my software engineering courses. However, this server is **NOT** secure for production; it is simply a small open-source demo. Please see Limitations section for more.
 
 ## Features
 
-    - Event-driven C server
-    - Multithreading C++ server
-    - Portable clients
-    - Multi-client support
-    - Usernames, and the ability to change them
-    - Broadcast and private messaging
-    - List of connected users
-    - Graceful shutdown via signal handling
-    - Robust handling of errors, disconnects, resource exhaustion, and invalid user input
-    - Modular codebase
-    - Clean socket + resource management
-    - Chat logging
+- Multithreading C++ server
+- Portable clients
+- Multi-client support
+- Usernames, and the ability to change them
+- Broadcast and private messaging
+- List of connected users
+- Graceful server shutdown via signal handling
+- Robust handling of errors, disconnects, resource exhaustion, and invalid user input
+- Modular codebase
+- Clean socket + resource management
+- Chat logging
 
 ## Dependencies
 
 To run this you will need:
 
-    - A C compiler like gcc or clang, or a C++ compiler like g++
-    - make
-    - kqueue
-    - AddressSanitizer (optional, for memory testing)
+- A C++17 compiler like g++ or clang++ 
+- make
+- cmake (for building GoogleTest)
+- GoogleTest (added as git submodule)
+- AddressSanitizer (optional, for memory testing)
 
-On macOS, Xcode Command Line Tools include gcc, clang, make, and kqueue. So if you don't have it already, simply run:
-
-    xcode-select --install
-
-on a terminal window.
+On macOS, Xcode Command Line Tools include g++, clang++, and make. If you don't have them already, simply run `xcode-select --install` on a terminal window.
 
 ## Installation Guide
 
-    1. Download the source code from a given release, unzip it.
-    
-    2. Open a terminal window in the cloned repo's root directory, or cd to it
-    
-    3. Run "make".
+1. Clone repository and initialize submodules:
+
+    git clone https://github.com/yourusername/yourrepo.git
+    cd yourrepo
+    git submodule update --init --recursive
+
+2. On a terminal window in the cloned repo's root, build GoogleTest. (Done automatically by Makefile or CI, but you can do this manually if needed)
+
+    cd third_party/googletest
+    cmake -S . -B build
+    cmake --build build
+    cd ../..
+
+3. Run "make" to build the project:
+
+    make
 
 ## Launching
 
-### C Version
+On a terminal window you wish to use as a server (opened on the cloned repo's root directory), run ./tserver <port>. The server takes a single argument for the desired port number, which can range from 1024 to 65535. Afterwards, it an only be shut down with CTRL+C.
 
-On a terminal window you wish to use as a server (opened on the cloned repo's root directory), run ./kserver. The server takes no arguments, and can only be interacted with to shut down (CTRL + C).
-
-On a terminal window you wish to use as a client (also opened on the cloned repo's root directory), run ./client [ ip ]. The client takes one argument, the IP address of the server. The program was built using localhost, or 127.0.0.1 (::1 in IPv6).
+On a terminal window you wish to use as a client (also opened on the cloned repo's root directory), run ./client <ip> <port>. The client takes two argument, the IP address of the server and the server port. The program was built using localhost, or 127.0.0.1 (::1 in IPv6).
 
 The default port for both the server and the client is 5223.
-
-### C++ Version
-
-Instead of ./kserver, run ./tserver.
 
 ## Running
 
@@ -68,45 +69,50 @@ From this point on any non-command message typed and sent in a client will be br
 
 Clients can send commands to the server (prefaced by a backslash /) to execute specific functionalities. Some commands take arguments. Here is an overview:
 
-    # /help - Server will send a list of available commands to the requesting client who requested it.
+- /help - Server will send a list of available commands to the requesting client.
 
-    # /exit - Server will close its connection to the requesting client, who will termiante gracefully.
+- /exit - Server will close its connection to the requesting client, who will terminate gracefully.
 
-    # /list - Server will send a list of all connected clients' usernames to the requesting client.
+- /list - Server will send a list of all connected clients' usernames to the requesting client.
 
-    # /name [new username] - Server will change a client's username. Usernames have a max length, cannot contain spaces, and cannot be NULL. If new username is valid, all future broadcasted and private messages will reflect this change.
+- /name <newusername> - Server will change a client's username. Usernames must be unique, non-empty, have a max length, and cannot contain spaces/control characters. Invalid or duplicate usernames will be rejected. All future broadcasted and private messages will reflect a successful change.
 
-    # /msg [target username] [message] - Server will forward a private message to the specfied target client. It will not work if either of the arguments are NULL, or if the target username does not exist. Clients receiving a private message will be notified of who the sender is.
+- /msg <target> <message> - Server will forward a private message to the specfied target client. It will not work if either argument is missing, or if the target username does not exist. Clients receiving a private message will be notified of the sender.
 
-A log file "chatLog.log" (or "server.log" for the C++ server) will be created in the root directory. The following things will be logged here:
+## Logging
 
-    1. Broadcast chat messages
-    2. Private chat messages (denoted as "sender -> receiver: ")
-    3. Server startup
-    4. Server shutdown
-    5. Clients connecting and disconnecting
-    6. Succesful username changes
+All broadcasts, private messages, connections, disconnections, and username changes are logged into `server.log`.
+- Client logs are prefixed with their username, or "unknown" if the client has not set their username.
+- Clients log into their console as well.
+- Log file logs include a timestamp in UTC.
+- If the log file already exists, the server will append instead of overwriting.
 
-These logs include a timestamp in UTC. If the log file already exists, the server will append instead of overwriting.
+## Documentation
+
+The codebase contains Doxygen-style comments for documentation. If you have Doxyfile configured, you can generate HTML documentation with:
+
+    doxygen Doxyfile
 
 ### Optional Features
 
 These can be enabled by adding a flag to line 2 of the Makefile:
 
-    CFLAGS = -Wall -Wextra -Werror -g -Iinclude
+    CXXFLAGS = -Wall -Wextra -Werror -g -Iinclude
 
 The following flags are available:
 
-    -DDEBUG: enables debug output, more on that in its respective section
-    -DRECEIVE_OWN_MESSAGE: Server sends broadcast message back to sender as well
-    -DINSTRUCTIONS: Print usage instructions for client every time a message is sent/received
-    -DLOCAL_EXIT: Client terminates immediately when using /exit instead of waiting for server to close connection
+- -DDEBUG: enables debug output, more on that in its respective section.
+- -DRECEIVE_OWN_MESSAGE: Server sends broadcast message back to sender as well.
+- -DINSTRUCTIONS: Print usage instructions for client every time a message is sent/received.
+- -DLOCAL_EXIT: Client terminates immediately when using /exit instead of waiting for server to close connection.
 
-Make sure to run "make clean && make" to re-compile everything.
+Make sure to run `make clean && make` to re-compile everything.
 
 ## Testing
 
-All testing-related files can be found in the tests directory. Executables for each are created upon installation, which you can run individually:
+Unit tests are written using GoogleTest, a submodule that must be initialized. Run all tests with `make test`. The call will fail if any test fails.
+
+Testing-related files can be found in the `tests` directory. Executables for each are created upon installation, which you can run individually:
 
     ./testClientList runs unit-tests on the frequently-called methods supporting the linked list that keeps track of all connected clients. 
 
@@ -114,37 +120,42 @@ All testing-related files can be found in the tests directory. Executables for e
 
     ./testUtils runs tests on helper functions used by other files.
 
-Alternatively, run "make test" to build and run tests. The call will fail if any test fails.
-
 Due to Valgrind not being available on macOS, ASan and LSan are used to detect memory leaks and buffer overflows. To enable them, simply change line 2 of the Makefile from:
 
-    CFLAGS = -Wall -Wextra -Werror -g -Iinclude 
+    CXXFLAGS = -Wall -Wextra -Werror -g -Iinclude 
 
 to
 
-    CFLAGS = -Wall -Wextra -Werror -g -Iinclude -fsanitize=address
+    CXXFLAGS = -Wall -Wextra -Werror -g -Iinclude -fsanitize=address
 
-then run "make clean && make" to recompile everything.
+then run `make clean && make` to recompile everything.
 
 ## Limitations
 
-    - As mentioned above, due to the kqueue interface being a macOS implementation of Linux's epoll, the server only runs on macOS.
-    - Only plain text messages supported
-    - Unencrypted communication
-    - No spam protection
-    - No user registration/passwords
-    - No GUI client
-    - May not scale to hundreds/thousands of clients
-    - Only supports UTF-8 (input is verified)
+- Only plain text messages supported
+- Unencrypted communication
+- No spam protection
+- No user registration/passwords
+- No GUI client
+- May not scale to hundreds/thousands of clients
+- Only supports UTF-8 (input is validated)
 
 ## Debugging
 
-You can enable debug logging to print additional output at all times. Simply change line 2 of the Makefile from:
+You can enable debug logging to print additional output and setup logs. Simply change line 2 of the Makefile from:
 
-    CFLAGS = -Wall -Wextra -Werror -g -Iinclude
+    CXXFLAGS = -Wall -Wextra -Werror -g -Iinclude
 
 to
 
-    CFLAGS = -Wall -Wextra -Werror -g -Iinclude -DDEBUG
+    CXXFLAGS = -Wall -Wextra -Werror -g -Iinclude -DDEBUG
 
-and run "make clean && make" to re-compile everything.
+and run `make clean && make` to re-compile everything.
+
+## Version
+
+The current version is defined in `include/version.hpp` as `CHAT_APP_VERSION`.
+
+## C Version
+
+As mentioned above, please see the `main` branch for the C server. The C server only works on macOS due to its use of `kqueue` for event handling.

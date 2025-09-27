@@ -1,6 +1,7 @@
-/*
-log.cpp - Chat logging function and file management
-*/
+/**
+ * @file log.cpp
+ * @brief Chat logging function and file management.
+ */
 
 #include "../include/log.hpp"
 #include <cerrno>
@@ -12,6 +13,14 @@ log.cpp - Chat logging function and file management
 
 using namespace std;
 
+/**
+ * @brief Opens the log file for appending log messages.
+ * 
+ * If file cannot be opened, error message is printed to stderr.
+ * 
+ * @param filename The name of log file to open.
+ * @return true if file opened successfully, false otherwise.
+ */
 bool ChatLogger::open(const string &filename) {
     lock_guard<mutex> lock(mtx);
     logFile.open(filename, ios::app);
@@ -22,6 +31,9 @@ bool ChatLogger::open(const string &filename) {
     return true;
 }
 
+/**
+ * @brief Closes the log file, if it's open. Otherwise does nothing.
+ */
 void ChatLogger::close() {
     lock_guard<mutex> lock(mtx);
     if (logFile.is_open()) {
@@ -29,6 +41,16 @@ void ChatLogger::close() {
     }
 }
 
+/**
+ * @brief Logs message to log file with timestamp.
+ * 
+ * Prepends a UTC timestamp to the message and writes it to the log file.
+ * If log file isn't open or a writing error occurs, error message is
+ * printed to stderr.
+ *
+ * @param msg Message to log.
+ * @return true if message logged successfully, false otherwise.
+ */
 bool ChatLogger::log(const string &msg) {
     lock_guard<mutex> lock(mtx);
     if (!logFile.is_open()) {

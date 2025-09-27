@@ -1,8 +1,18 @@
+/**
+ * @file socketRAII.hpp
+ * @brief RAII wrapper for socket file descriptors.
+ */
+
 #ifndef SOCKET_RAII_HPP
 #define SOCKET_RAII_HPP
 
 #include <unistd.h>
 
+/**
+ * @brief RAII wrapper for socket file descriptors.
+ * 
+ * Automatically closes the socket when the object goes out of scope.
+ */
 class SocketRAII {
     int fd;
 

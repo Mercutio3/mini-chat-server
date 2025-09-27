@@ -1,6 +1,7 @@
-/*
-commands.cpp - Command processing functions
-*/
+/**
+ * @file commands.cpp
+ * @brief Command processing functions.
+ */
 
 #include "../include/commands.hpp"
 #include "../include/clientList.hpp"
@@ -16,7 +17,6 @@ ssize_t mock_send(int sockfd, const void *buf, size_t len, int flags);
 #define send mock_send
 #endif
 
-// Send list of commands to client
 void processHelpCmd(int clientFd) {
     const char *helpMessage = "Available commands:\n"
                               "/help - Show this help message\n"
@@ -26,7 +26,6 @@ void processHelpCmd(int clientFd) {
     send(clientFd, helpMessage, strlen(helpMessage), 0);
 }
 
-// Send list of connected users to client
 void processListCmd(int clientFd, ThreadClientList &clientList) {
     vector<string> clientNames = clientList.getUsernames();
     for (const auto &name : clientNames) {
@@ -35,14 +34,12 @@ void processListCmd(int clientFd, ThreadClientList &clientList) {
     }
 }
 
-// Change username; username can't be empty or longer than max length
 void processNameCmd(int clientFd, ThreadClientList &clientList, const string &newName,
                     int maxLength) {
     clientList.changeUsername(clientFd, newName, maxLength);
 }
 
-// Send a private message
-void processMsgCmd(int clientFd, ThreadClientList &clientList, const string &msg) {
+ void processMsgCmd(int clientFd, ThreadClientList &clientList, const string &msg) {
     // Parse and verify formatting
     size_t firstSpace = msg.find(' ');
     if (firstSpace == string::npos) {

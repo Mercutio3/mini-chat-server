@@ -1,3 +1,8 @@
+/**
+ * @file tserver.cpp
+ * @brief Server program and its server-side operations.
+ */
+
 #include "../include/clientList.hpp"
 #include "../include/commands.hpp"
 #include "../include/log.hpp"
@@ -19,20 +24,49 @@
 
 using namespace std;
 
+/// Maximum number of pending connections in queue
 constexpr int BACKLOG = 5;
+
+/// Maximum number of bytes for a single message
 constexpr int MAXDATASIZE = 100;
+
+/// Maximum length for a username
 constexpr int USERNAME_MAX_LENGTH = 64;
 
+/// Indicates if the server should keep running.
 atomic<bool> run(true);
+
+/// Client list instance
 ThreadClientList clientList;
+
+/// Logger instance
 ChatLogger logger;
+
+/// Vector to hold client threads
 vector<thread> clientThreads;
 
+/**
+ * @brief Signal handler to gracefully shut down the server.
+ * 
+ * Sets `run` atomic boolean to false when SIGINT or SIGTERM is received;
+ * server exits main loop and cleans up resources before shutting down.
+ *
+ * @param signum The signal number received.
+ */
 void signalHandler(int signum) {
     LOG_DEBUG("Signal " + to_string(signum) + " received!", logger);
     run = false;
 }
 
+/**
+ * @brief Handles communication with a connected client.
+ * 
+ * Manages interaction with a connected client, including receiving messages,
+ * processing commands, and broadcasting messages. Also handles client
+ * disconnection with proper cleanup.
+ *
+ * @param clientFd A SocketRAII object representing the client's socket file descriptor.
+ */
 void handleClient(SocketRAII clientFd) {
     struct timeval tv;
     tv.tv_sec = 1; // 1 second timeout
@@ -111,6 +145,17 @@ void handleClient(SocketRAII clientFd) {
     clientList.deleteClient(clientFd.get());
 }
 
+/**
+ * @brief Main server startup function.
+ * 
+ * Initializes server, sets up listening socket, and enters main accept loop
+ * to handle incoming client connections. Also manages graceful shutdown on
+ * receiving termination signals.
+ * 
+ * @param argc Argument count.
+ * @param argv Argument vector. Optionally takes a port number as the first argument.
+ * @return EXIT_SUCCESS on successful execution, EXIT_FAILURE otherwise.
+ */
 int main(int argc, char *argv[]) {
     string port = "5223"; // Default port
     if (!logger.open("server.log")) {
