@@ -1,0 +1,27 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chat-server
+    ports:
+      - "5223:5223"
+    networks:
+      - chat-net
+    command: ["5223"]
+  
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    depends_on:
+      - server
+    networks:
+      - chat-net
+    command: ["chat-server", "5223"]
+    stdin_open: true
+    tty: true
+  
+networks:
+  chat-net:
+    driver: bridge

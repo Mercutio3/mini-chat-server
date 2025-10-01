@@ -1,6 +1,6 @@
 # Mini Chat Server - C++
 
-**Version 1.1**
+**Version 1.1.1**
 
 This repo contains a pair of simple but professional multi-client chat servers written in C and C++.
 
@@ -51,17 +51,17 @@ On macOS, Xcode Command Line Tools include g++, clang++, and make. If you don't 
     cmake --build build
     cd ../..
 
-3. Run "make" to build the project:
+3. Run "`make`" to build the project:
 
     make
 
 ## Launching
 
-On a terminal window you wish to use as a server (opened on the cloned repo's root directory), run ./tserver <port>. The server takes a single argument for the desired port number, which can range from 1024 to 65535. Afterwards, it an only be shut down with CTRL+C.
+On a terminal window you wish to use as a server (opened on the cloned repo's root directory), run ./tserver <port>. The server takes a single argument for the desired port number, which can range from `1024` to `65535`. Afterwards, it an only be shut down with CTRL+C.
 
-On a terminal window you wish to use as a client (also opened on the cloned repo's root directory), run ./client <ip> <port>. The client takes two argument, the IP address of the server and the server port. The program was built using localhost, or 127.0.0.1 (::1 in IPv6).
+On a terminal window you wish to use as a client (also opened on the cloned repo's root directory), run ./client <ip> <port>. The client takes two argument, the IP address of the server and the server port. The program was built using localhost, or `127.0.0.1` (`::1` in IPv6).
 
-The default port for both the server and the client is 5223.
+The default port for both the server and the client is `5223`.
 
 ## Running
 
@@ -78,6 +78,36 @@ Clients can send commands to the server (prefaced by a backslash /) to execute s
 - /name <newusername> - Server will change a client's username. Usernames must be unique, non-empty, have a max length, and cannot contain spaces/control characters. Invalid or duplicate usernames will be rejected. All future broadcasted and private messages will reflect a successful change.
 
 - /msg <target> <message> - Server will forward a private message to the specfied target client. It will not work if either argument is missing, or if the target username does not exist. Clients receiving a private message will be notified of the sender.
+
+## Docker Compose Usage
+
+You can also easily run the server and multiple clients using Docker Compose. It will also take care of the networking; both the clients and server communicate over an internal Docker network called `chat-net`.
+
+To build and start the server and one client:
+
+    docker compose up --build
+
+Alternatively, to run multiple clients, use the `--scale` flag:
+
+    docker compose up --scale client=3
+
+To interact with a specific client or server:
+
+1. Open a new terminal window
+
+2. See all running containers:
+
+    docker ps
+
+3. Attach to any of the available containers:
+
+    docker attach chat-client-1
+
+To stop and remove all containers and the network:
+
+    docker compose down
+
+Clients use the server's container name (`chat-server`) to connect to it, as well as the defualt port `5223`. To change the port, edit `docker-compose.yml` to pass different values in the `command` section.
 
 ## Logging
 

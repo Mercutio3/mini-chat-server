@@ -1,12 +1,18 @@
 FROM ubuntu:22.04
 
 RUN apt-get update && \
-    apt-get install -y build-essential make
+    apt-get install -y build-essential make cmake git
 
 WORKDIR /app
 
 COPY . .
 
+RUN git submodule update --init --recursive && \
+    cd third_party/googletest && \
+    cmake -S . -B build && \
+    cmake --build build && \
+    cd /app
+
 RUN make clean && make
 
-CMD ["./client"]
+ENTRYPOINT ["./client"]
